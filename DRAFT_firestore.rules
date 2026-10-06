@@ -1,0 +1,309 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Global Hardened Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Zero-read admin check safe for list queries (Pillar 8 Cost-Optimization Clause)
+    // Strictly restricted to the 2 authorized admins (Santosh Rout & Piyush Garai)
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'routsantosh650@gmail.com' ||
+        request.auth.token.email == 'piyushgarai@gmail.com'
+      );
+    }
+
+    // Full admin check for single-document operations (evaluated last per Denial-of-Wallet Guard)
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints (Synchronized with firebase-blueprint.json)
+
+    function isValidHostingPlan(data) {
+      return data.keys().hasAll([
+        'name', 'tagline', 'category', 'priceInr', 'billingPeriod',
+        'ram', 'cpu', 'storage', 'speed', 'popular', 'features',
+        'sortOrder', 'authorId', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'tagline', 'category', 'priceInr', 'billingPeriod',
+        'ram', 'cpu', 'storage', 'speed', 'popular', 'features',
+        'sortOrder', 'authorId', 'createdAt', 'updatedAt'
+      ]) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+      data.tagline is string && data.tagline.size() >= 1 && data.tagline.size() <= 120 &&
+      data.category is string && data.category.size() <= 20 &&
+      (data.category == 'budget' || data.category == 'premium' || data.category == 'exclusive' || data.category == 'bot' || data.category == 'vps' || data.category == 'domain') &&
+      data.priceInr is number && data.priceInr >= 1 && data.priceInr <= 500000 &&
+      data.billingPeriod is string && data.billingPeriod.size() <= 10 &&
+      (data.billingPeriod == '/mo' || data.billingPeriod == '/yr') &&
+      data.ram is string && data.ram.size() >= 1 && data.ram.size() <= 40 &&
+      data.cpu is string && data.cpu.size() >= 1 && data.cpu.size() <= 60 &&
+      data.storage is string && data.storage.size() >= 1 && data.storage.size() <= 50 &&
+      data.speed is string && data.speed.size() >= 1 && data.speed.size() <= 60 &&
+      data.popular is bool &&
+      data.features is list && data.features.size() >= 1 && data.features.size() <= 10 &&
+      data.features[0] is string && data.features[0].size() >= 1 && data.features[0].size() <= 120 &&
+      data.sortOrder is number && data.sortOrder >= 0 && data.sortOrder <= 1000 &&
+      data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 && data.authorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidServerOrder(data) {
+      return data.keys().hasAll([
+        'userId', 'planId', 'planName', 'category', 'amountInr',
+        'paymentMethod', 'serverHostname', 'datacenterNode',
+        'encryptedCredentials', 'encryptionIv', 'status',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'planId', 'planName', 'category', 'amountInr',
+        'paymentMethod', 'serverHostname', 'datacenterNode',
+        'encryptedCredentials', 'encryptionIv', 'status',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.planId is string && data.planId.size() >= 1 && data.planId.size() <= 128 && data.planId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.planName is string && data.planName.size() >= 1 && data.planName.size() <= 80 &&
+      data.category is string && data.category.size() <= 20 &&
+      (data.category == 'budget' || data.category == 'premium' || data.category == 'exclusive' || data.category == 'bot' || data.category == 'vps' || data.category == 'domain') &&
+      data.amountInr is number && data.amountInr >= 1 && data.amountInr <= 500000 &&
+      data.paymentMethod is string && data.paymentMethod.size() <= 20 &&
+      (data.paymentMethod == 'stripe' || data.paymentMethod == 'paypal' || data.paymentMethod == 'razorpay_upi') &&
+      data.serverHostname is string && data.serverHostname.size() >= 3 && data.serverHostname.size() <= 100 &&
+      data.datacenterNode is string && data.datacenterNode.size() <= 40 &&
+      (data.datacenterNode == 'Mumbai IN-West-1' || data.datacenterNode == 'Noida IN-North-1' || data.datacenterNode == 'Singapore SG-1') &&
+      data.encryptedCredentials is string && data.encryptedCredentials.size() >= 16 && data.encryptedCredentials.size() <= 2048 &&
+      data.encryptionIv is string && data.encryptionIv.size() >= 16 && data.encryptionIv.size() <= 64 &&
+      data.status is string && data.status.size() <= 20 &&
+      (data.status == 'provisioning' || data.status == 'active' || data.status == 'suspended' || data.status == 'completed') &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidSiteConfig(data) {
+      return data.keys().hasAll([
+        'brandName', 'heroTitle', 'heroSubtitle', 'panelUrl',
+        'discordUrl', 'storeUrl', 'supportTicketUrl',
+        'founderName', 'founderQuote', 'discountOffer', 'updatedBy', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'brandName', 'heroTitle', 'heroSubtitle', 'panelUrl',
+        'discordUrl', 'storeUrl', 'supportTicketUrl',
+        'founderName', 'founderQuote', 'discountOffer', 'updatedBy', 'updatedAt'
+      ]) &&
+      data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 60 &&
+      data.heroTitle is string && data.heroTitle.size() >= 1 && data.heroTitle.size() <= 120 &&
+      data.heroSubtitle is string && data.heroSubtitle.size() >= 1 && data.heroSubtitle.size() <= 300 &&
+      data.panelUrl is string && data.panelUrl.size() >= 1 && data.panelUrl.size() <= 200 &&
+      data.discordUrl is string && data.discordUrl.size() >= 1 && data.discordUrl.size() <= 200 &&
+      data.storeUrl is string && data.storeUrl.size() >= 1 && data.storeUrl.size() <= 200 &&
+      data.supportTicketUrl is string && data.supportTicketUrl.size() >= 1 && data.supportTicketUrl.size() <= 200 &&
+      data.founderName is string && data.founderName.size() >= 1 && data.founderName.size() <= 80 &&
+      data.founderQuote is string && data.founderQuote.size() >= 1 && data.founderQuote.size() <= 400 &&
+      data.discountOffer is string && data.discountOffer.size() >= 0 && data.discountOffer.size() <= 240 &&
+      data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128 && data.updatedBy.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAnalyticsEvent(data) {
+      return data.keys().hasAll([
+        'userId', 'eventType', 'category', 'label', 'valueInr', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'eventType', 'category', 'label', 'valueInr', 'createdAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.eventType is string && data.eventType.size() <= 30 &&
+      (data.eventType == 'page_view' || data.eventType == 'plan_select' || data.eventType == 'checkout_start' || data.eventType == 'order_complete' || data.eventType == 'panel_action') &&
+      data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+      data.label is string && data.label.size() >= 1 && data.label.size() <= 120 &&
+      data.valueInr is number && data.valueInr >= 0 && data.valueInr <= 500000 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidAdminMember(data) {
+      return data.keys().hasAll(['uid', 'role', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'role', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.role is string && data.role.size() <= 20 && data.role == 'admin' &&
+      data.createdAt is timestamp;
+    }
+
+    // 4. Collection Match Blocks
+
+    // Connection health check endpoint
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Collection: /plans/{planId}
+    match /plans/{planId} {
+      allow get: if isValidId(planId) && existing().priceInr >= 1;
+      allow list: if existing().priceInr >= 1;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(planId) &&
+        isValidHostingPlan(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerifiedUser() &&
+        isValidId(planId) &&
+        isValidHostingPlan(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'tagline', 'category', 'priceInr', 'billingPeriod',
+          'ram', 'cpu', 'storage', 'speed', 'popular', 'features',
+          'sortOrder', 'updatedAt'
+        ]) &&
+        isAdmin();
+
+      allow delete: if isVerifiedUser() && isValidId(planId) && isAdmin();
+    }
+
+    // Collection: /orders/{orderId}
+    match /orders/{orderId} {
+      allow get: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        (existing().userId == request.auth.uid || isAdmin());
+
+      allow list: if isVerifiedUser() &&
+        (existing().userId == request.auth.uid || isBootstrappedAdmin());
+
+      allow create: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        isValidServerOrder(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        (incoming().status == 'provisioning' || incoming().status == 'active') &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        isValidServerOrder(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().planId == existing().planId &&
+        incoming().amountInr == existing().amountInr &&
+        incoming().encryptedCredentials == existing().encryptedCredentials &&
+        incoming().encryptionIv == existing().encryptionIv &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (
+            existing().userId == request.auth.uid &&
+            existing().status != 'completed' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'serverHostname', 'updatedAt'])
+          ) ||
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'serverHostname', 'datacenterNode', 'updatedAt']) &&
+            isAdmin()
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(orderId) && isAdmin();
+    }
+
+    // Collection: /siteConfig/{configId}
+    match /siteConfig/{configId} {
+      allow get: if isValidId(configId) && existing().brandName.size() >= 1;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(configId) &&
+        isValidSiteConfig(incoming()) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerifiedUser() &&
+        isValidId(configId) &&
+        isValidSiteConfig(incoming()) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'brandName', 'heroTitle', 'heroSubtitle', 'panelUrl',
+          'discordUrl', 'storeUrl', 'supportTicketUrl',
+          'founderName', 'founderQuote', 'discountOffer', 'updatedBy', 'updatedAt'
+        ]) &&
+        isAdmin();
+
+      allow delete: if false;
+    }
+
+    // Collection: /analytics/{eventId}
+    match /analytics/{eventId} {
+      allow get: if isVerifiedUser() &&
+        isValidId(eventId) &&
+        (existing().userId == request.auth.uid || isAdmin());
+
+      allow list: if isVerifiedUser() &&
+        (existing().userId == request.auth.uid || isBootstrappedAdmin());
+
+      allow create: if isVerifiedUser() &&
+        isValidId(eventId) &&
+        isValidAnalyticsEvent(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    // Collection: /admins/{adminId}
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() &&
+        isValidId(adminId) &&
+        (request.auth.uid == adminId || isAdmin());
+
+      allow create: if isVerifiedUser() &&
+        isValidId(adminId) &&
+        isValidAdminMember(incoming()) &&
+        incoming().uid == adminId &&
+        incoming().createdAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerifiedUser() &&
+        isValidId(adminId) &&
+        isValidAdminMember(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['role']) &&
+        isAdmin();
+
+      allow delete: if isVerifiedUser() && isValidId(adminId) && isAdmin();
+    }
+  }
+}

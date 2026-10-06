@@ -1,0 +1,176 @@
+/**
+ * Phase 0 & Phase 5 Security TDD Verification Suite for Areex Cloud Firestore Rules
+ * Verifies that all "Dirty Dozen" adversarial payloads are rejected with PERMISSION_DENIED.
+ */
+
+export interface AdversarialPayloadTest {
+  id: number;
+  name: string;
+  collection: string;
+  operation: 'create' | 'update' | 'get' | 'list' | 'delete';
+  auth: { uid: string; email: string; email_verified: boolean } | null;
+  docId: string;
+  payload?: Record<string, unknown>;
+  expectedOutcome: 'PERMISSION_DENIED';
+  blockingGate: string;
+}
+
+export const DIRTY_DOZEN_TESTS: AdversarialPayloadTest[] = [
+  {
+    id: 1,
+    name: 'Shadow Field Injection on Order Create',
+    collection: 'orders',
+    operation: 'create',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'order_valid_1',
+    payload: {
+      userId: 'user_123',
+      planId: 'elite_plus',
+      planName: 'Elite Plus',
+      category: 'premium',
+      amountInr: 499,
+      paymentMethod: 'stripe',
+      serverHostname: 'play.areex.in',
+      datacenterNode: 'Mumbai IN-West-1',
+      encryptedCredentials: 'aes256_ciphertext_payload_valid',
+      encryptionIv: '0123456789abcdef0123456789abcdef',
+      status: 'active',
+      isVerifiedAdmin: true,
+    },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'isValidServerOrder -> data.keys().hasOnly(...)',
+  },
+  {
+    id: 2,
+    name: 'Identity Spoofing on Order Create',
+    collection: 'orders',
+    operation: 'create',
+    auth: { uid: 'attacker_99', email: 'attacker@example.com', email_verified: true },
+    docId: 'order_spoof_2',
+    payload: {
+      userId: 'victim_01',
+      planId: 'elite_plus',
+      planName: 'Elite Plus',
+      category: 'premium',
+      amountInr: 499,
+      paymentMethod: 'stripe',
+      serverHostname: 'play.areex.in',
+      datacenterNode: 'Mumbai IN-West-1',
+      encryptedCredentials: 'aes256_ciphertext_payload_valid',
+      encryptionIv: '0123456789abcdef0123456789abcdef',
+      status: 'active',
+    },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'incoming().userId == request.auth.uid',
+  },
+  {
+    id: 3,
+    name: 'Unverified Email Admin Spoof',
+    collection: 'plans',
+    operation: 'create',
+    auth: { uid: 'spoof_admin', email: 'routsantosh650@gmail.com', email_verified: false },
+    docId: 'plan_1',
+    payload: { name: 'Fake Plan', priceInr: 1 },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'isVerifiedUser() -> request.auth.token.email_verified == true',
+  },
+  {
+    id: 4,
+    name: 'Terminal State Mutation on Completed Order',
+    collection: 'orders',
+    operation: 'update',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'order_completed_1',
+    payload: { status: 'active' },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: "existing().status != 'completed'",
+  },
+  {
+    id: 5,
+    name: 'Encrypted Vault Tampering on Order Update',
+    collection: 'orders',
+    operation: 'update',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'order_active_1',
+    payload: { encryptedCredentials: 'tampered_ciphertext_value_123456' },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: "incoming().encryptedCredentials == existing().encryptedCredentials && affectedKeys().hasOnly(['status', 'serverHostname', 'updatedAt'])",
+  },
+  {
+    id: 6,
+    name: 'Denial-of-Wallet ID Poisoning',
+    collection: 'orders',
+    operation: 'create',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'invalid$doc!id#with%symbols',
+    payload: {},
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: "isValidId(orderId) -> id.matches('^[a-zA-Z0-9_\\\\-]+$')",
+  },
+  {
+    id: 7,
+    name: 'Unbounded Array Overflow on HostingPlan',
+    collection: 'plans',
+    operation: 'create',
+    auth: { uid: 'admin_1', email: 'routsantosh650@gmail.com', email_verified: true },
+    docId: 'plan_overflow',
+    payload: {
+      features: Array.from({ length: 25 }, (_, i) => `Feature ${i}`),
+    },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'isValidHostingPlan -> data.features.size() <= 10',
+  },
+  {
+    id: 8,
+    name: 'Client Timestamp Forgery',
+    collection: 'orders',
+    operation: 'create',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'order_forged_time',
+    payload: { createdAt: '2020-01-01T00:00:00Z' },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'incoming().createdAt == request.time',
+  },
+  {
+    id: 9,
+    name: 'Cross-Tenant Order Read / PII Leak',
+    collection: 'orders',
+    operation: 'get',
+    auth: { uid: 'user_B', email: 'userb@example.com', email_verified: true },
+    docId: 'order_owned_by_user_A',
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'existing().userId == request.auth.uid || isAdmin()',
+  },
+  {
+    id: 10,
+    name: 'Unconstrained List Scraping on Orders',
+    collection: 'orders',
+    operation: 'list',
+    auth: { uid: 'user_B', email: 'userb@example.com', email_verified: true },
+    docId: '*',
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'allow list: if isVerifiedUser() && (existing().userId == request.auth.uid || isAdmin())',
+  },
+  {
+    id: 11,
+    name: 'Self-Elevation in /admins/{uid}',
+    collection: 'admins',
+    operation: 'create',
+    auth: { uid: 'regular_user_uid', email: 'user@example.com', email_verified: true },
+    docId: 'regular_user_uid',
+    payload: { uid: 'regular_user_uid', role: 'admin' },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'isAdmin()',
+  },
+  {
+    id: 12,
+    name: 'Value Poisoning on Whitelisted Update Field',
+    collection: 'orders',
+    operation: 'update',
+    auth: { uid: 'user_123', email: 'player@example.com', email_verified: true },
+    docId: 'order_active_1',
+    payload: { serverHostname: 'x'.repeat(500) },
+    expectedOutcome: 'PERMISSION_DENIED',
+    blockingGate: 'isValidServerOrder(incoming()) -> data.serverHostname.size() <= 100',
+  },
+];

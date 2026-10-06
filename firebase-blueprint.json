@@ -1,0 +1,368 @@
+{
+  "entities": {
+    "HostingPlan": {
+      "title": "HostingPlan",
+      "description": "A server hosting plan in one of the 6 official Areex Cloud categories.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the plan",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Short subtitle for who the plan is built for",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "description": "One of the 6 Discord plan categories",
+          "enum": ["budget", "premium", "exclusive", "bot", "vps", "domain"]
+        },
+        "priceInr": {
+          "type": "number",
+          "description": "Price in Indian Rupees"
+        },
+        "billingPeriod": {
+          "type": "string",
+          "description": "Billing cycle label",
+          "enum": ["/mo", "/yr"]
+        },
+        "ram": {
+          "type": "string",
+          "description": "RAM allocation specification",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "cpu": {
+          "type": "string",
+          "description": "CPU allocation or core count",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "storage": {
+          "type": "string",
+          "description": "NVMe or disk storage allocation",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "speed": {
+          "type": "string",
+          "description": "Network port speed or processor model",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "popular": {
+          "type": "boolean",
+          "description": "Whether this plan is highlighted as Most Popular"
+        },
+        "features": {
+          "type": "array",
+          "description": "Bounded list of up to 10 plan features"
+        },
+        "sortOrder": {
+          "type": "number",
+          "description": "Numeric ordering index within the category"
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who created or updated the plan",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": [
+        "name",
+        "tagline",
+        "category",
+        "priceInr",
+        "billingPeriod",
+        "ram",
+        "cpu",
+        "storage",
+        "speed",
+        "popular",
+        "features",
+        "sortOrder",
+        "authorId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ServerOrder": {
+      "title": "ServerOrder",
+      "description": "An encrypted customer server order and provisioned instance record.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the purchasing user",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "planId": {
+          "type": "string",
+          "description": "ID of the purchased plan",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "planName": {
+          "type": "string",
+          "description": "Name of the purchased plan",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the purchased plan",
+          "enum": ["budget", "premium", "exclusive", "bot", "vps", "domain"]
+        },
+        "amountInr": {
+          "type": "number",
+          "description": "Total amount paid in INR"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Selected payment gateway",
+          "enum": ["stripe", "paypal", "razorpay_upi"]
+        },
+        "serverHostname": {
+          "type": "string",
+          "description": "Configured hostname or domain for the server",
+          "minLength": 3,
+          "maxLength": 100
+        },
+        "datacenterNode": {
+          "type": "string",
+          "description": "Selected datacenter node location",
+          "enum": ["Mumbai IN-West-1", "Noida IN-North-1", "Singapore SG-1"]
+        },
+        "encryptedCredentials": {
+          "type": "string",
+          "description": "AES-256-GCM encrypted payload containing panel login and billing metadata",
+          "minLength": 16,
+          "maxLength": 2048
+        },
+        "encryptionIv": {
+          "type": "string",
+          "description": "Hex initialization vector for AES-256-GCM",
+          "minLength": 16,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Provisioning lifecycle status",
+          "enum": ["provisioning", "active", "suspended", "completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when order was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when order was last updated"
+        }
+      },
+      "required": [
+        "userId",
+        "planId",
+        "planName",
+        "category",
+        "amountInr",
+        "paymentMethod",
+        "serverHostname",
+        "datacenterNode",
+        "encryptedCredentials",
+        "encryptionIv",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Global site configuration and Discord/Panel links editable from the No-Code Admin Panel.",
+      "type": "object",
+      "properties": {
+        "brandName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "heroTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "heroSubtitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "panelUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "discordUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "storeUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "supportTicketUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "founderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "founderQuote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "discountOffer": {
+          "type": "string",
+          "description": "Optional discount banner text shown above plans when non-empty",
+          "minLength": 0,
+          "maxLength": 240
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "brandName",
+        "heroTitle",
+        "heroSubtitle",
+        "panelUrl",
+        "discordUrl",
+        "storeUrl",
+        "supportTicketUrl",
+        "founderName",
+        "founderQuote",
+        "updatedBy",
+        "updatedAt"
+      ]
+    },
+    "AnalyticsEvent": {
+      "title": "AnalyticsEvent",
+      "description": "Real-time telemetry event recorded for admin analytics monitoring.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventType": {
+          "type": "string",
+          "enum": ["page_view", "plan_select", "checkout_start", "order_complete", "panel_action"]
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "valueInr": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "eventType",
+        "category",
+        "label",
+        "valueInr",
+        "createdAt"
+      ]
+    },
+    "AdminMember": {
+      "title": "AdminMember",
+      "description": "Trusted administrator registry document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/plans/{planId}": {
+      "schema": { "$ref": "#/entities/HostingPlan" },
+      "description": "Publicly readable hosting plans managed by administrators."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/ServerOrder" },
+      "description": "AES-256 encrypted server orders accessible only to the owning user or administrators."
+    },
+    "/siteConfig/{configId}": {
+      "schema": { "$ref": "#/entities/SiteConfig" },
+      "description": "Global site configuration and links editable by administrators."
+    },
+    "/analytics/{eventId}": {
+      "schema": { "$ref": "#/entities/AnalyticsEvent" },
+      "description": "Real-time analytics events created by authenticated users and read by administrators."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminMember" },
+      "description": "Trusted administrator membership collection."
+    }
+  }
+}

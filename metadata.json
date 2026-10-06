@@ -1,0 +1,6 @@
+{
+  "name": "Areex Cloud — High-Performance Minecraft, Bot & VPS Hosting",
+  "description": "Enterprise-grade Minecraft server hosting, Discord bot hosting, KVM VPS, and domains built in India for gamers and communities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
