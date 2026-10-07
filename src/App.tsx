@@ -1287,7 +1287,7 @@ export default function App() {
               {/* Bento Card 4 (col-span-2): 4-Step Buying Flow */}
               <div className="rounded-2xl border border-white/10 bg-[#120a0e] p-6 sm:p-8 lg:col-span-2">
                 <div className="font-mono text-xs text-red-400">
-                  SEAMLESS BUYING FLOW · STRIPE, PAYPAL, RAZORPAY UPI & COUPONS
+                  SEAMLESS BUYING FLOW · RAZORPAY UPI, CARDS, NETBANKING & COUPONS
                 </div>
                 <h3 className="mt-2 font-display text-xl font-bold text-white">
                   From Plan Selection to Live Server in Under 60 Seconds
@@ -1304,7 +1304,7 @@ export default function App() {
                     <div className="font-mono font-bold text-red-400">STEP 02</div>
                     <div className="mt-1 font-semibold text-white">Apply Coupon & Pay</div>
                     <p className="mt-1 text-slate-400">
-                      Apply any official coupon code and checkout via UPI, Stripe, or PayPal.
+                      Apply any official coupon code and checkout directly via Razorpay.
                     </p>
                   </div>
                   <div className="border-l border-red-500/40 pl-3">

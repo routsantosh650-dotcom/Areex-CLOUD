@@ -6,10 +6,9 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  CreditCard,
   Smartphone,
-  Wallet,
   KeyRound,
+  AlertCircle,
 } from 'lucide-react';
 import {
   HostingPlanItem,
@@ -60,7 +59,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   userEmail,
   onOrderCompleted,
 }) => {
-  const [gateway, setGateway] = useState<'stripe' | 'paypal' | 'razorpay_upi'>('razorpay_upi');
   const [serverHostname, setServerHostname] = useState('play.areexsmp.in');
   const [datacenterNode, setDatacenterNode] = useState<
     'Mumbai IN-West-1' | 'Noida IN-North-1' | 'Singapore SG-1'
@@ -69,24 +67,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [promoFeedback, setPromoFeedback] = useState<string | null>(null);
 
-  const [customerEmail] = useState(userEmail || 'gamer@areexcloud.site');
-  const [cardHolder, setCardHolder] = useState('Santosh Rout');
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvc, setCardCvc] = useState('842');
-  const [upiId, setUpiId] = useState('gamer@okaxis');
-  const [paypalEmail, setPaypalEmail] = useState('billing@areexcloud.site');
+  const [customerEmail, setCustomerEmail] = useState(
+    userEmail || 'gamer@areexcloud.site'
+  );
+  const [customerPhone, setCustomerPhone] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<ProvisionedOrderRecord | null>(null);
   const [decryptedVerifyText, setDecryptedVerifyText] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [razorpayPopupOpen, setRazorpayPopupOpen] = useState(false);
-  const [rzpMethodTab, setRzpMethodTab] = useState<'qr' | 'vpa' | 'card' | 'netbanking'>('qr');
-  const [selectedUpiApp, setSelectedUpiApp] = useState<'GPay' | 'PhonePe' | 'Paytm' | 'BHIM'>('GPay');
-  const [selectedBank, setSelectedBank] = useState<string>('HDFC Bank');
-  const [rzpProcessing, setRzpProcessing] = useState(false);
 
   if (!plan) return null;
 
@@ -94,60 +84,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     1,
     Math.round(plan.priceInr * (1 - appliedDiscount / 100))
   );
-
-  // Client-side fallback order generator so checkout & Razorpay work 100% even in static deployments
-  const buildClientFallbackOrder = (
-    method: 'stripe' | 'paypal' | 'razorpay_upi',
-    customTxId?: string
-  ): ProvisionedOrderRecord => {
-    const cleanHost =
-      serverHostname
-        .trim()
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .slice(0, 12)
-        .toLowerCase() || 'server';
-    const subnetOctet =
-      datacenterNode === 'Mumbai IN-West-1'
-        ? '103.195.102'
-        : datacenterNode === 'Noida IN-North-1'
-          ? '103.148.204'
-          : '139.99.68';
-    const hostOctet = Math.floor(20 + (Date.now() % 220));
-    const port = 25565 + Math.floor(Date.now() % 120);
-    const randSuffix = Math.random().toString(36).slice(2, 10).toUpperCase();
-    const txId =
-      customTxId ||
-      (method === 'razorpay_upi' ? `pay_Rzp${randSuffix}` : `ARX-${randSuffix}`);
-
-    const randomHex = (len: number) =>
-      Array.from({ length: len }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-
-    return {
-      id: `ord_${Date.now()}`,
-      transactionId: txId,
-      planId: plan.id,
-      planName: plan.name,
-      category: plan.category,
-      amountInr: discountedPriceInr,
-      paymentMethod: method,
-      serverHostname: serverHostname.trim() || 'play.areexsmp.in',
-      datacenterNode,
-      encryptedCredentials: randomHex(128),
-      encryptionIv: randomHex(32),
-      hmacSignature: randomHex(64),
-      credentials: {
-        serverUsername: `areex_${cleanHost}_${hostOctet}`,
-        serverPassword: `Arx#${randSuffix}!9`,
-        dedicatedEndpoint: `${subnetOctet}.${hostOctet}:${port}`,
-        sftpAddress: `sftp://${subnetOctet}.${hostOctet}:2022`,
-        rconToken: randomHex(24),
-      },
-      status: 'active',
-      createdAtIso: new Date().toISOString(),
-    };
-  };
 
   const handleApplyPromo = (customCode?: string) => {
     const code = (customCode ?? promoCode).trim().toUpperCase();
@@ -197,219 +133,232 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     setSubmitting(true);
     try {
-      // Check if live Razorpay API keys are configured when Razorpay UPI is selected
-      if (gateway === 'razorpay_upi') {
-        const envKeyId = (
-          (import.meta as unknown as { env?: Record<string, string> }).env
-            ?.VITE_RAZORPAY_KEY_ID || ''
-        ).trim();
+      const envKeyId = (
+        (import.meta as unknown as { env?: Record<string, string> }).env
+          ?.VITE_RAZORPAY_KEY_ID || ''
+      ).trim();
 
-        const cfgRes = await fetch('/api/razorpay/config')
-          .then((r) => (r.ok ? r.json() : { configured: false }))
-          .catch(() => ({ configured: false }));
+      const cfgRes = await fetch('/api/razorpay/config')
+        .then((r) => (r.ok ? r.json() : { configured: false }))
+        .catch(() => ({ configured: false }));
 
-        const activeKeyId: string | null =
-          cfgRes.configured && cfgRes.keyId
-            ? cfgRes.keyId
-            : envKeyId.startsWith('rzp_')
-              ? envKeyId
-              : null;
+      const activeKeyId: string | null =
+        cfgRes.configured && cfgRes.keyId
+          ? cfgRes.keyId
+          : envKeyId.startsWith('rzp_')
+            ? envKeyId
+            : null;
 
-        if (activeKeyId) {
-          const sdkLoaded = await loadRazorpayScript();
-          if (sdkLoaded) {
-            let serverOrderId: string | undefined;
-            let serverAmountPaise = discountedPriceInr * 100;
-
-            if (cfgRes.hasOrderSecret) {
-              const orderRes = await fetch('/api/razorpay/create-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  planId: plan.id,
-                  priceInr: plan.priceInr,
-                  promoCode: promoCode.trim(),
-                  serverHostname: trimmedHost,
-                }),
-              }).catch(() => null);
-
-              if (orderRes && orderRes.ok) {
-                const orderData = await orderRes.json().catch(() => null);
-                if (orderData?.orderId) {
-                  serverOrderId = orderData.orderId;
-                  serverAmountPaise = orderData.amountPaise || serverAmountPaise;
-                }
-              }
-            }
-
-            type RazorpaySuccessResponse = {
-              razorpay_order_id?: string;
-              razorpay_payment_id?: string;
-              razorpay_signature?: string;
-            };
-
-            type RazorpayInstance = {
-              open: () => void;
-            };
-
-            type RazorpayConstructor = new (
-              options: Record<string, unknown>
-            ) => RazorpayInstance;
-
-            const RazorpayWin = (
-              window as unknown as { Razorpay: RazorpayConstructor }
-            ).Razorpay;
-
-            const rzpOptions: Record<string, unknown> = {
-              key: activeKeyId,
-              amount: serverAmountPaise,
-              currency: 'INR',
-              name: 'Areex Cloud',
-              description: `${plan.name} (${plan.ram} · ${plan.cpu})`,
-              prefill: {
-                email: customerEmail,
-              },
-              theme: {
-                color: '#dc2626',
-              },
-              handler: async (rzpResp: RazorpaySuccessResponse) => {
-                try {
-                  if (
-                    rzpResp.razorpay_order_id &&
-                    rzpResp.razorpay_payment_id &&
-                    rzpResp.razorpay_signature
-                  ) {
-                    const verifyRes = await fetch('/api/razorpay/verify-payment', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        razorpay_order_id: rzpResp.razorpay_order_id,
-                        razorpay_payment_id: rzpResp.razorpay_payment_id,
-                        razorpay_signature: rzpResp.razorpay_signature,
-                        planId: plan.id,
-                        planName: plan.name,
-                        category: plan.category,
-                        priceInr: plan.priceInr,
-                        serverHostname: trimmedHost,
-                        datacenterNode,
-                        promoCode: promoCode.trim(),
-                        customerEmail,
-                      }),
-                    }).catch(() => null);
-
-                    if (verifyRes && verifyRes.ok) {
-                      const verifyData = await verifyRes.json();
-                      const orderRecord: ProvisionedOrderRecord = {
-                        id: `ord_${Date.now()}`,
-                        transactionId: verifyData.transactionId,
-                        planId: plan.id,
-                        planName: plan.name,
-                        category: plan.category,
-                        amountInr: verifyData.finalAmountInr,
-                        paymentMethod: 'razorpay_upi',
-                        serverHostname: trimmedHost,
-                        datacenterNode,
-                        encryptedCredentials: verifyData.encryptedCredentials,
-                        encryptionIv: verifyData.encryptionIv,
-                        hmacSignature: verifyData.hmacSignature,
-                        credentials: verifyData.credentials,
-                        status: 'active',
-                        createdAtIso: new Date().toISOString(),
-                      };
-                      setCompletedOrder(orderRecord);
-                      onOrderCompleted(orderRecord);
-                      return;
-                    }
-                  }
-
-                  // Client-side Key ID checkout completion
-                  const fallbackOrder = buildClientFallbackOrder(
-                    'razorpay_upi',
-                    rzpResp.razorpay_payment_id || undefined
-                  );
-                  setCompletedOrder(fallbackOrder);
-                  onOrderCompleted(fallbackOrder);
-                } finally {
-                  setSubmitting(false);
-                }
-              },
-              modal: {
-                ondismiss: () => {
-                  setSubmitting(false);
-                },
-              },
-            };
-
-            if (serverOrderId) {
-              rzpOptions.order_id = serverOrderId;
-            }
-
-            const rzp = new RazorpayWin(rzpOptions);
-            rzp.open();
-            return;
-          }
-        }
+      if (!activeKeyId) {
+        throw new Error(
+          'Razorpay API Key (RAZORPAY_KEY_ID) abhi set nahi hai. Payment tabhi hogi jab RAZORPAY_KEY_ID aur RAZORPAY_KEY_SECRET environment variables me add honge.'
+        );
       }
 
-      // Open the interactive Razorpay Payment Gateway Modal so Razorpay UPI/QR/Card/NetBanking always works!
-      if (gateway === 'razorpay_upi' && !razorpayPopupOpen) {
-        setSubmitting(false);
-        setRazorpayPopupOpen(true);
-        return;
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded) {
+        throw new Error(
+          'Unable to load official Razorpay Checkout SDK (checkout.razorpay.com). Please check your internet connection or adblocker.'
+        );
       }
 
-      try {
-        const response = await fetch('/api/checkout/process', {
+      let serverOrderId: string | undefined;
+      let serverAmountPaise = discountedPriceInr * 100;
+
+      if (cfgRes.hasOrderSecret) {
+        const orderRes = await fetch('/api/razorpay/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             planId: plan.id,
-            planName: plan.name,
-            category: plan.category,
             priceInr: plan.priceInr,
-            paymentMethod: gateway,
-            serverHostname: trimmedHost,
-            datacenterNode,
             promoCode: promoCode.trim(),
-            customerEmail,
+            serverHostname: trimmedHost,
           }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.credentials) {
+        const orderData = await orderRes.json().catch(() => ({}));
+        if (!orderRes.ok || !orderData.orderId) {
+          throw new Error(
+            orderData.error ||
+              'Failed to create Razorpay Order. Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.'
+          );
+        }
+        serverOrderId = orderData.orderId;
+        serverAmountPaise = orderData.amountPaise || serverAmountPaise;
+      }
+
+      type RazorpaySuccessResponse = {
+        razorpay_order_id?: string;
+        razorpay_payment_id?: string;
+        razorpay_signature?: string;
+      };
+
+      type RazorpayInstance = {
+        open: () => void;
+        on?: (
+          event: string,
+          callback: (err: { error?: { description?: string } }) => void
+        ) => void;
+      };
+
+      type RazorpayConstructor = new (
+        options: Record<string, unknown>
+      ) => RazorpayInstance;
+
+      const RazorpayWin = (
+        window as unknown as { Razorpay: RazorpayConstructor }
+      ).Razorpay;
+
+      const rzpOptions: Record<string, unknown> = {
+        key: activeKeyId,
+        amount: serverAmountPaise,
+        currency: 'INR',
+        name: 'Areex Cloud',
+        description: `${plan.name} (${plan.ram} · ${plan.cpu})`,
+        prefill: {
+          email: customerEmail.trim() || 'gamer@areexcloud.site',
+          contact: customerPhone.trim() || undefined,
+        },
+        theme: {
+          color: '#dc2626',
+        },
+        handler: async (rzpResp: RazorpaySuccessResponse) => {
+          // Strictly require a real razorpay_payment_id from Razorpay
+          if (!rzpResp || !rzpResp.razorpay_payment_id) {
+            setErrorMsg('Payment was not completed on Razorpay.');
+            setSubmitting(false);
+            return;
+          }
+
+          try {
+            if (
+              serverOrderId &&
+              rzpResp.razorpay_order_id &&
+              rzpResp.razorpay_signature
+            ) {
+              const verifyRes = await fetch('/api/razorpay/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: rzpResp.razorpay_order_id,
+                  razorpay_payment_id: rzpResp.razorpay_payment_id,
+                  razorpay_signature: rzpResp.razorpay_signature,
+                  planId: plan.id,
+                  planName: plan.name,
+                  category: plan.category,
+                  priceInr: plan.priceInr,
+                  serverHostname: trimmedHost,
+                  datacenterNode,
+                  promoCode: promoCode.trim(),
+                  customerEmail: customerEmail.trim(),
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (!verifyRes.ok) {
+                setErrorMsg(
+                  verifyData.error || 'Razorpay payment signature verification failed.'
+                );
+                setSubmitting(false);
+                return;
+              }
+
+              const orderRecord: ProvisionedOrderRecord = {
+                id: `ord_${Date.now()}`,
+                transactionId: verifyData.transactionId,
+                planId: plan.id,
+                planName: plan.name,
+                category: plan.category,
+                amountInr: verifyData.finalAmountInr,
+                paymentMethod: 'razorpay_upi',
+                serverHostname: trimmedHost,
+                datacenterNode,
+                encryptedCredentials: verifyData.encryptedCredentials,
+                encryptionIv: verifyData.encryptionIv,
+                hmacSignature: verifyData.hmacSignature,
+                credentials: verifyData.credentials,
+                status: 'active',
+                createdAtIso: new Date().toISOString(),
+              };
+              setCompletedOrder(orderRecord);
+              onOrderCompleted(orderRecord);
+              return;
+            }
+
+            // If using client-side Key ID mode, provision only after real razorpay_payment_id is received
+            const procRes = await fetch('/api/checkout/process', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                planId: plan.id,
+                planName: plan.name,
+                category: plan.category,
+                priceInr: plan.priceInr,
+                paymentMethod: 'razorpay_upi',
+                serverHostname: trimmedHost,
+                datacenterNode,
+                promoCode: promoCode.trim(),
+                customerEmail: customerEmail.trim(),
+              }),
+            });
+
+            if (!procRes.ok) {
+              throw new Error('Failed to provision server after Razorpay payment.');
+            }
+            const procData = await procRes.json();
             const orderRecord: ProvisionedOrderRecord = {
               id: `ord_${Date.now()}`,
-              transactionId: data.transactionId,
+              transactionId: rzpResp.razorpay_payment_id,
               planId: plan.id,
               planName: plan.name,
               category: plan.category,
-              amountInr: data.finalAmountInr,
-              paymentMethod: gateway,
+              amountInr: procData.finalAmountInr || discountedPriceInr,
+              paymentMethod: 'razorpay_upi',
               serverHostname: trimmedHost,
               datacenterNode,
-              encryptedCredentials: data.encryptedCredentials,
-              encryptionIv: data.encryptionIv,
-              hmacSignature: data.hmacSignature,
-              credentials: data.credentials,
+              encryptedCredentials: procData.encryptedCredentials,
+              encryptionIv: procData.encryptionIv,
+              hmacSignature: procData.hmacSignature,
+              credentials: procData.credentials,
               status: 'active',
               createdAtIso: new Date().toISOString(),
             };
             setCompletedOrder(orderRecord);
             onOrderCompleted(orderRecord);
-            return;
+          } catch (err) {
+            setErrorMsg(
+              err instanceof Error ? err.message : 'Payment verification failed.'
+            );
+          } finally {
+            setSubmitting(false);
           }
-        }
-      } catch {
-        // Fallback to client-side provisioning below if /api/checkout/process is unreachable
+        },
+        modal: {
+          ondismiss: () => {
+            setSubmitting(false);
+            setErrorMsg('Payment cancelled by user. Server was not provisioned.');
+          },
+        },
+      };
+
+      if (serverOrderId) {
+        rzpOptions.order_id = serverOrderId;
       }
 
-      const fallbackOrder = buildClientFallbackOrder(gateway);
-      setCompletedOrder(fallbackOrder);
-      onOrderCompleted(fallbackOrder);
+      const rzp = new RazorpayWin(rzpOptions);
+      if (rzp.on) {
+        rzp.on('payment.failed', (resp) => {
+          setSubmitting(false);
+          setErrorMsg(
+            resp?.error?.description ||
+              'Razorpay payment failed. Please try again with valid UPI or card details.'
+          );
+        });
+      }
+      rzp.open();
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Unable to process checkout.');
-    } finally {
+      setErrorMsg(err instanceof Error ? err.message : 'Unable to launch Razorpay.');
       setSubmitting(false);
     }
   };
@@ -428,77 +377,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const data = await res.json();
       if (data.verified) {
         setDecryptedVerifyText('AES-256-GCM Auth Tag Verified · Zero Tampering Detected');
-        return;
       }
     } catch {
-      // Fallback verification for client-provisioned payload
+      setDecryptedVerifyText('Verification failed');
     }
-    setDecryptedVerifyText('AES-256-GCM Auth Tag Verified · Zero Tampering Detected');
   };
 
   const copyValue = (key: string, val: string) => {
     navigator.clipboard?.writeText(val);
     setCopiedField(key);
     setTimeout(() => setCopiedField(null), 1600);
-  };
-
-  const handleConfirmInteractiveRazorpay = async () => {
-    setRzpProcessing(true);
-    setErrorMsg(null);
-    try {
-      const response = await fetch('/api/checkout/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: plan.id,
-          planName: plan.name,
-          category: plan.category,
-          priceInr: plan.priceInr,
-          paymentMethod: 'razorpay_upi',
-          serverHostname: serverHostname.trim(),
-          datacenterNode,
-          promoCode: promoCode.trim(),
-          customerEmail,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json().catch(() => null);
-        if (data && data.credentials) {
-          const orderRecord: ProvisionedOrderRecord = {
-            id: `ord_${Date.now()}`,
-            transactionId: `pay_${String(data.transactionId || '').replace('ARX-', '')}`,
-            planId: plan.id,
-            planName: plan.name,
-            category: plan.category,
-            amountInr: data.finalAmountInr,
-            paymentMethod: 'razorpay_upi',
-            serverHostname: serverHostname.trim(),
-            datacenterNode,
-            encryptedCredentials: data.encryptedCredentials,
-            encryptionIv: data.encryptionIv,
-            hmacSignature: data.hmacSignature,
-            credentials: data.credentials,
-            status: 'active',
-            createdAtIso: new Date().toISOString(),
-          };
-
-          setRazorpayPopupOpen(false);
-          setCompletedOrder(orderRecord);
-          onOrderCompleted(orderRecord);
-          return;
-        }
-      }
-    } catch {
-      // Fallback to instant client-side Razorpay provisioning if backend route is unavailable
-    } finally {
-      setRzpProcessing(false);
-    }
-
-    const fallbackOrder = buildClientFallbackOrder('razorpay_upi');
-    setRazorpayPopupOpen(false);
-    setCompletedOrder(fallbackOrder);
-    onOrderCompleted(fallbackOrder);
   };
 
   return (
@@ -512,11 +400,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <div className="flex items-start justify-between border-b border-white/10 pb-5">
           <div>
             <p className="font-mono text-xs text-red-400">
-              AES-256-GCM ENCRYPTED BILLING · INSTANT DEPLOYMENT
+              OFFICIAL RAZORPAY GATEWAY · INSTANT SERVER DEPLOYMENT
             </p>
             <h2
               id="checkout-modal-title"
-              className="mt-1 font-display text-2xl font-bold tracking-tight text-white"
+              className="mt-1 font-display text-xl sm:text-2xl font-bold tracking-tight text-white"
             >
               {completedOrder
                 ? `Server Provisioned: ${completedOrder.planName}`
@@ -534,7 +422,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </div>
 
         {!completedOrder ? (
-          <form onSubmit={handleCheckoutSubmit} className="mt-6 grid gap-6 lg:grid-cols-12">
+          <form onSubmit={handleCheckoutSubmit} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="space-y-5 lg:col-span-7">
               <div>
                 <label
@@ -576,7 +464,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           : 'border-white/10 bg-[#090608] text-slate-400 hover:border-white/25 hover:text-slate-200'
                       }`}
                     >
-                      <div className="truncate text-xs font-semibold">{node.name.split(' ')[0]}</div>
+                      <div className="truncate text-xs font-semibold">
+                        {node.name.split(' ')[0]}
+                      </div>
                       <div className="font-mono text-[11px] text-red-400 tabular-nums">
                         {node.ping} ping
                       </div>
@@ -585,158 +475,72 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300">
-                  Payment Gateway
-                </label>
-                <div className="mt-1.5 grid grid-cols-3 gap-2 rounded-xl border border-white/10 bg-[#090608] p-1">
-                  <button
-                    type="button"
-                    onClick={() => setGateway('stripe')}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors whitespace-nowrap ${
-                      gateway === 'stripe'
-                        ? 'bg-red-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="customer-email-input"
+                    className="block text-xs font-medium text-slate-300"
                   >
-                    <CreditCard className="h-3.5 w-3.5" />
-                    <span>Stripe Card</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGateway('paypal')}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors whitespace-nowrap ${
-                      gateway === 'paypal'
-                        ? 'bg-red-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    Billing Email (for Panel Login)
+                  </label>
+                  <input
+                    id="customer-email-input"
+                    type="email"
+                    required
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="you@gmail.com"
+                    className="mt-1.5 w-full rounded-lg border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="customer-phone-input"
+                    className="block text-xs font-medium text-slate-300"
                   >
-                    <Wallet className="h-3.5 w-3.5" />
-                    <span>PayPal</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGateway('razorpay_upi')}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors whitespace-nowrap ${
-                      gateway === 'razorpay_upi'
-                        ? 'bg-red-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Smartphone className="h-3.5 w-3.5" />
-                    <span>Razorpay UPI</span>
-                  </button>
+                    Phone / WhatsApp (for Razorpay UPI)
+                  </label>
+                  <input
+                    id="customer-phone-input"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="mt-1.5 w-full rounded-lg border border-white/15 bg-[#090608] px-3.5 py-2.5 font-mono text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                  />
                 </div>
               </div>
 
-              {gateway === 'stripe' && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-[#090608] p-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Stripe 3DS2 Encrypted Card Checkout</span>
-                    <span className="font-mono text-slate-300">VISA · MASTERCARD · RUPAY</span>
-                  </div>
-                  <div>
-                    <label htmlFor="card-holder" className="block text-[11px] text-slate-400">
-                      Cardholder Name
-                    </label>
-                    <input
-                      id="card-holder"
-                      type="text"
-                      required
-                      value={cardHolder}
-                      onChange={(e) => setCardHolder(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="card-number" className="block text-[11px] text-slate-400">
-                      Card Number
-                    </label>
-                    <input
-                      id="card-number"
-                      type="text"
-                      required
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="card-expiry" className="block text-[11px] text-slate-400">
-                        Expiry
-                      </label>
-                      <input
-                        id="card-expiry"
-                        type="text"
-                        required
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                      />
+              {/* Single Exclusive Payment Gateway: Razorpay Only */}
+              <div className="rounded-xl border border-red-500/40 bg-[#090608] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-white">
+                      <Smartphone className="h-4 w-4" />
                     </div>
                     <div>
-                      <label htmlFor="card-cvc" className="block text-[11px] text-slate-400">
-                        CVC
-                      </label>
-                      <input
-                        id="card-cvc"
-                        type="password"
-                        required
-                        maxLength={4}
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                      />
+                      <div className="text-xs font-bold text-white">
+                        Razorpay Secure Payment Gateway
+                      </div>
+                      <div className="font-mono text-[11px] text-slate-400">
+                        Direct redirect to official Razorpay checkout on clicking Pay
+                      </div>
                     </div>
                   </div>
+                  <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-400 shrink-0">
+                    RAZORPAY ONLY
+                  </span>
                 </div>
-              )}
 
-              {gateway === 'paypal' && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-[#090608] p-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>PayPal Express One-Touch</span>
-                    <span className="font-mono text-slate-300">BUYER PROTECTION</span>
-                  </div>
-                  <div>
-                    <label htmlFor="paypal-email" className="block text-[11px] text-slate-400">
-                      PayPal Account Email
-                    </label>
-                    <input
-                      id="paypal-email"
-                      type="email"
-                      required
-                      value={paypalEmail}
-                      onChange={(e) => setPaypalEmail(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 text-xs text-white focus:border-red-500 focus:outline-none"
-                    />
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-3 font-mono text-[10px] text-slate-300">
+                  <span className="rounded bg-white/5 px-2 py-1">Google Pay</span>
+                  <span className="rounded bg-white/5 px-2 py-1">PhonePe</span>
+                  <span className="rounded bg-white/5 px-2 py-1">Paytm</span>
+                  <span className="rounded bg-white/5 px-2 py-1">BHIM UPI QR</span>
+                  <span className="rounded bg-white/5 px-2 py-1">RuPay / Visa / MC</span>
+                  <span className="rounded bg-white/5 px-2 py-1">NetBanking</span>
                 </div>
-              )}
-
-              {gateway === 'razorpay_upi' && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-[#090608] p-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Razorpay Instant UPI / NetBanking</span>
-                    <span className="font-mono text-slate-300">GPAY · PHONEPE · PAYTM</span>
-                  </div>
-                  <div>
-                    <label htmlFor="upi-id-input" className="block text-[11px] text-slate-400">
-                      Enter VPA / UPI ID
-                    </label>
-                    <input
-                      id="upi-id-input"
-                      type="text"
-                      required
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="username@okicici"
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
             <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#090608] p-5 lg:col-span-5">
@@ -780,7 +584,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       placeholder="Enter Coupon Code"
-                      className="w-full rounded-lg border border-white/10 bg-[#140c10] px-3 py-1.5 font-mono text-xs text-white uppercase focus:border-red-500 focus:outline-none"
+                      className="w-full min-w-0 rounded-lg border border-white/10 bg-[#140c10] px-3 py-1.5 font-mono text-xs text-white uppercase focus:border-red-500 focus:outline-none"
                     />
                     <button
                       type="button"
@@ -828,9 +632,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
 
                 {errorMsg && (
-                  <p className="mt-2 text-xs text-red-400" role="alert">
-                    {errorMsg}
-                  </p>
+                  <div
+                    role="alert"
+                    className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-950/60 p-3 text-xs text-red-200"
+                  >
+                    <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
                 )}
 
                 <button
@@ -841,14 +649,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <Lock className="h-4 w-4" />
                   <span>
                     {submitting
-                      ? 'Encrypting & Provisioning...'
-                      : `Pay ${formatPriceInCurrency(discountedPriceInr, currency)} & Deploy Server`}
+                      ? 'Opening Razorpay Gateway...'
+                      : `Pay ₹${discountedPriceInr} with Razorpay`}
                   </span>
                 </button>
 
                 <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>AES-256-GCM Encrypted Credentials · Instant Deployment</span>
+                  <span>100% Verified Razorpay Checkout · Instant Provisioning</span>
                 </div>
               </div>
             </div>
@@ -863,9 +671,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     Server Active on {completedOrder.datacenterNode}
                   </h3>
                   <p className="font-mono text-xs text-slate-300">
-                    Transaction {completedOrder.transactionId} · Paid{' '}
-                    {formatPriceInCurrency(completedOrder.amountInr, currency)} via{' '}
-                    {completedOrder.paymentMethod.toUpperCase()}
+                    Razorpay Payment ID: {completedOrder.transactionId} · Paid ₹
+                    {completedOrder.amountInr}
                   </p>
                 </div>
               </div>
@@ -976,259 +783,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {decryptedVerifyText && (
                 <p className="mt-2 font-mono text-xs text-emerald-400">{decryptedVerifyText}</p>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Interactive Razorpay Checkout Gateway Popup Window */}
-        {razorpayPopupOpen && !completedOrder && (
-          <div
-            role="dialog"
-            aria-label="Razorpay Secure Checkout Gateway"
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md overflow-y-auto"
-          >
-            <div className="my-auto w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 bg-[#0d080b] text-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.95)]">
-              {/* Official Razorpay Style Crimson Merchant Header */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-red-700 via-red-600 to-[#991b1b] px-4 py-3.5 text-white">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-black/25 font-display text-sm font-extrabold">
-                    RZP
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate font-display text-sm font-bold leading-tight">
-                      Areex Cloud · Razorpay
-                    </div>
-                    <div className="truncate font-mono text-[10px] text-red-100">
-                      Order: {plan.name} ({plan.ram})
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-right font-mono">
-                    <div className="text-sm font-extrabold">₹{discountedPriceInr}</div>
-                    <div className="text-[9px] uppercase text-red-100">INR Verified</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setRazorpayPopupOpen(false)}
-                    aria-label="Close Razorpay Window"
-                    className="rounded-lg bg-black/20 p-1.5 text-white hover:bg-black/40"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Method Switcher inside Razorpay Window */}
-              <div className="grid grid-cols-4 gap-1 border-b border-white/10 bg-[#140b10] p-1.5 text-[10px] sm:text-[11px] font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setRzpMethodTab('qr')}
-                  className={`rounded-lg py-1.5 transition-colors ${
-                    rzpMethodTab === 'qr'
-                      ? 'bg-red-600 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  UPI / QR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRzpMethodTab('vpa')}
-                  className={`rounded-lg py-1.5 transition-colors ${
-                    rzpMethodTab === 'vpa'
-                      ? 'bg-red-600 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  UPI ID
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRzpMethodTab('card')}
-                  className={`rounded-lg py-1.5 transition-colors ${
-                    rzpMethodTab === 'card'
-                      ? 'bg-red-600 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Card
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRzpMethodTab('netbanking')}
-                  className={`rounded-lg py-1.5 transition-colors ${
-                    rzpMethodTab === 'netbanking'
-                      ? 'bg-red-600 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  NetBanking
-                </button>
-              </div>
-
-              {/* Razorpay Body */}
-              <div className="p-4 space-y-4">
-                {rzpMethodTab === 'qr' && (
-                  <div className="flex flex-col items-center text-center">
-                    <div className="font-mono text-[11px] text-emerald-400">
-                      SCAN QR OR SELECT UPI APP TO PAY ₹{discountedPriceInr}
-                    </div>
-
-                    {/* Crisp SVG QR Code Matrix */}
-                    <div className="mt-2.5 flex h-36 w-36 items-center justify-center rounded-xl border-2 border-red-500/40 bg-white p-2.5 shadow-lg">
-                      <svg viewBox="0 0 100 100" className="h-full w-full fill-black">
-                        <rect x="6" y="6" width="26" height="26" fill="none" stroke="black" strokeWidth="6" />
-                        <rect x="13" y="13" width="12" height="12" />
-                        <rect x="68" y="6" width="26" height="26" fill="none" stroke="black" strokeWidth="6" />
-                        <rect x="75" y="13" width="12" height="12" />
-                        <rect x="6" y="68" width="26" height="26" fill="none" stroke="black" strokeWidth="6" />
-                        <rect x="13" y="75" width="12" height="12" />
-                        <rect x="40" y="10" width="6" height="6" />
-                        <rect x="52" y="10" width="6" height="12" />
-                        <rect x="40" y="24" width="18" height="6" />
-                        <rect x="10" y="42" width="12" height="6" />
-                        <rect x="28" y="40" width="8" height="14" />
-                        <rect x="44" y="42" width="14" height="14" fill="#dc2626" />
-                        <rect x="64" y="40" width="6" height="18" />
-                        <rect x="78" y="44" width="14" height="6" />
-                        <rect x="40" y="64" width="12" height="6" />
-                        <rect x="58" y="68" width="14" height="8" />
-                        <rect x="78" y="64" width="12" height="12" />
-                        <rect x="42" y="80" width="18" height="12" />
-                        <rect x="68" y="84" width="22" height="8" />
-                      </svg>
-                    </div>
-
-                    {/* Interactive UPI App Selector */}
-                    <div className="mt-3 grid w-full grid-cols-4 gap-1.5 font-mono text-[10px]">
-                      {(['GPay', 'PhonePe', 'Paytm', 'BHIM'] as const).map((app) => (
-                        <button
-                          key={app}
-                          type="button"
-                          onClick={() => setSelectedUpiApp(app)}
-                          className={`rounded-lg border py-1.5 font-semibold transition-all ${
-                            selectedUpiApp === app
-                              ? 'border-red-500 bg-red-600/20 text-white'
-                              : 'border-white/10 bg-white/5 text-slate-300 hover:text-white'
-                          }`}
-                        >
-                          {app}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {rzpMethodTab === 'vpa' && (
-                  <div className="space-y-3">
-                    <label className="block text-xs font-medium text-slate-300">
-                      Enter Your UPI ID / VPA
-                    </label>
-                    <input
-                      type="text"
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="yourname@okaxis"
-                      className="w-full rounded-xl border border-white/15 bg-[#160c11] px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                    />
-                    <div className="flex flex-wrap gap-1.5">
-                      {['@okaxis', '@ybl', '@paytm', '@okicici'].map((handle) => (
-                        <button
-                          key={handle}
-                          type="button"
-                          onClick={() => {
-                            const prefix = upiId.split('@')[0] || 'gamer';
-                            setUpiId(`${prefix}${handle}`);
-                          }}
-                          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-slate-300 hover:border-red-500/40 hover:text-white"
-                        >
-                          {handle}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-emerald-400 font-mono">
-                      ✓ VPA Verified · Collect request of ₹{discountedPriceInr} ready
-                    </p>
-                  </div>
-                )}
-
-                {rzpMethodTab === 'card' && (
-                  <div className="space-y-2.5 text-xs">
-                    <div>
-                      <label className="block text-[11px] text-slate-400">
-                        Card Number (RuPay / Visa / MasterCard)
-                      </label>
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-white/15 bg-[#160c11] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[11px] text-slate-400">Expiry</label>
-                        <input
-                          type="text"
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#160c11] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400">CVV</label>
-                        <input
-                          type="password"
-                          maxLength={4}
-                          value={cardCvc}
-                          onChange={(e) => setCardCvc(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#160c11] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {rzpMethodTab === 'netbanking' && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {['HDFC Bank', 'SBI Online', 'ICICI Bank', 'Axis Bank', 'Kotak Bank', 'PNB'].map(
-                      (bank) => (
-                        <button
-                          key={bank}
-                          type="button"
-                          onClick={() => setSelectedBank(bank)}
-                          className={`rounded-xl border px-3 py-2.5 text-center font-medium transition-all ${
-                            selectedBank === bank
-                              ? 'border-red-500 bg-red-600/20 text-white'
-                              : 'border-white/10 bg-[#160c11] text-slate-300 hover:border-red-500/50'
-                          }`}
-                        >
-                          {bank}
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={rzpProcessing}
-                  onClick={handleConfirmInteractiveRazorpay}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-colors hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>
-                    {rzpProcessing
-                      ? 'Verifying Razorpay Payment...'
-                      : `Pay ₹${discountedPriceInr} via Razorpay`}
-                  </span>
-                </button>
-
-                <div className="text-center font-mono text-[10px] text-slate-400">
-                  Secured by Razorpay 256-Bit PCI-DSS & Areex Cloud Vault
-                </div>
-              </div>
             </div>
           </div>
         )}

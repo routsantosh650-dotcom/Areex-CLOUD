@@ -131,7 +131,7 @@ function generateSupportReply(input: string): {
     q.includes('buy')
   ) {
     return {
-      text: 'Aap website par **Razorpay UPI (GPay, PhonePe, Paytm)**, **Stripe Cards**, ya **PayPal** se instant payment kar sakte hain. Checkout me aap **AREEX10** ya **INDIA20** (aur koi bhi active coupon code) lagake instant discount le sakte hain! Payment ke 60 seconds me server ready ho jata hai.',
+      text: 'Aap website par **Razorpay (UPI, GPay, PhonePe, Paytm, Cards & NetBanking)** se direct payment kar sakte hain. Checkout me aap **AREEX10** ya **INDIA20** (aur koi bhi active coupon code) lagake instant discount le sakte hain! Payment ke 60 seconds me server ready ho jata hai.',
       showDiscordCta: false,
     };
   }

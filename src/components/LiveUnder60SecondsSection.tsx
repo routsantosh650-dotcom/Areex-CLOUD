@@ -33,8 +33,8 @@ const PROCESS_STEPS = [
   },
   {
     num: '02',
-    title: 'Pay via Razorpay / Stripe',
-    desc: 'Secure checkout with UPI, cards, net banking, wallets & promo codes. Takes under 10 seconds.',
+    title: 'Pay via Razorpay',
+    desc: 'Direct checkout with Razorpay UPI (GPay, PhonePe, Paytm), cards, net banking & promo codes.',
   },
   {
     num: '03',
