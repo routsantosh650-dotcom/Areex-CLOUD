@@ -108,10 +108,10 @@ export const CurrencySlidebar: React.FC<CurrencySlidebarProps> = ({
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-label="Open Currency Slidebar Selector"
-        className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#120a0e] px-3.5 py-2 font-mono text-xs font-semibold text-white transition-all hover:border-red-500/60 hover:bg-[#190d13] whitespace-nowrap"
+        className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/15 bg-[#120a0e] px-2.5 sm:px-3.5 py-2 font-mono text-[11px] sm:text-xs font-semibold text-white transition-all hover:border-red-500/60 hover:bg-[#190d13] whitespace-nowrap"
       >
-        <SlidersHorizontal className="h-3.5 w-3.5 text-red-500" />
-        <span>Currency:</span>
+        <SlidersHorizontal className="h-3.5 w-3.5 text-red-500 shrink-0" />
+        <span className="hidden sm:inline">Currency:</span>
         <span className="rounded bg-red-600/20 px-1.5 py-0.5 text-red-400">
           {activeMeta.label}
         </span>
@@ -123,7 +123,7 @@ export const CurrencySlidebar: React.FC<CurrencySlidebarProps> = ({
           ref={drawerRef}
           role="dialog"
           aria-label="Currency Slidebar Selector"
-          className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-red-500/40 bg-[#11080c]/95 p-3.5 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+          className="absolute right-0 top-full z-50 mt-2 w-56 sm:w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-red-500/40 bg-[#11080c]/95 p-3.5 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl"
         >
           <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
             <span className="font-display text-xs font-bold text-white">

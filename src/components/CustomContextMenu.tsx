@@ -97,7 +97,7 @@ export const CustomContextMenu: React.FC<CustomContextMenuProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-4 left-4 z-30">
+      <div className="fixed bottom-4 left-4 z-30 hidden sm:block">
         <button
           type="button"
           onClick={() => {
@@ -118,7 +118,7 @@ export const CustomContextMenu: React.FC<CustomContextMenuProps> = ({
           role="menu"
           aria-label="Areex Cloud Fluid Command Menu"
           style={{ left: `${coords.x}px`, top: `${coords.y}px` }}
-          className="fixed z-50 w-72 rounded-xl border border-red-500/30 bg-[#120a0e]/95 p-2 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+          className="fixed z-50 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-red-500/30 bg-[#120a0e]/95 p-2 text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-xl"
         >
           <div className="flex items-center justify-between border-b border-white/10 px-2.5 py-2">
             <span className="font-display text-xs font-bold tracking-wide text-white">

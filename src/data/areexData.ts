@@ -1,3 +1,12 @@
+import {
+  HERO_MINECRAFT_DATA_URL as heroMinecraftImg,
+  CITADEL_SHOWCASE_DATA_URL as citadelShowcaseImg,
+  HARDWARE_RACK_DATA_URL as hardwareRackImg,
+  BOT_HOSTING_DATA_URL as botHostingImg,
+  VPS_SERVER_DATA_URL as vpsServerImg,
+  DOMAIN_DNS_DATA_URL as domainDnsImg,
+} from './embeddedImages';
+
 export type PlanCategoryKey = 'budget' | 'premium' | 'exclusive' | 'bot' | 'vps' | 'domain';
 
 export interface HostingPlanItem {
@@ -133,18 +142,12 @@ export interface SiteConfigData {
   discountOffer: string;
 }
 
-export const HERO_MINECRAFT_IMAGE =
-  '/src/assets/images/minecraft_cherry_hero_1791297555092.jpg';
-export const CITADEL_SHOWCASE_IMAGE =
-  '/src/assets/images/minecraft_crimson_citadel_1791297573028.jpg';
-export const HARDWARE_RACK_IMAGE =
-  '/src/assets/images/datacenter_ryzen_blade_1791297587652.jpg';
-export const BOT_HOSTING_IMAGE =
-  '/src/assets/images/discord_bot_hosting_hub_1791306773682.jpg';
-export const VPS_SERVER_IMAGE =
-  '/src/assets/images/kvm_vps_server_matrix_1791306793276.jpg';
-export const DOMAIN_DNS_IMAGE =
-  '/src/assets/images/domain_dns_network_1791306806619.jpg';
+export const HERO_MINECRAFT_IMAGE = heroMinecraftImg;
+export const CITADEL_SHOWCASE_IMAGE = citadelShowcaseImg;
+export const HARDWARE_RACK_IMAGE = hardwareRackImg;
+export const BOT_HOSTING_IMAGE = botHostingImg;
+export const VPS_SERVER_IMAGE = vpsServerImg;
+export const DOMAIN_DNS_IMAGE = domainDnsImg;
 
 export const DEFAULT_SITE_CONFIG: SiteConfigData = {
   brandName: 'Areex Cloud',

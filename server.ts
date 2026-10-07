@@ -140,7 +140,7 @@ function decryptAES256GCM(combinedHex: string, ivHex: string) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: '64kb' }));
 
@@ -405,18 +405,29 @@ async function startServer() {
 
   // Live Razorpay Integration Endpoints (Order Creation + HMAC-SHA256 Signature Verification)
   app.get('/api/razorpay/config', (_req, res) => {
-    const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
+    const keyId = (
+      process.env.RAZORPAY_KEY_ID ||
+      process.env.VITE_RAZORPAY_KEY_ID ||
+      ''
+    ).trim();
     const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
-    const configured = Boolean(
+    const validKeyId = Boolean(
       keyId &&
-        keySecret &&
         keyId !== 'rzp_live_or_test_key_id' &&
-        keySecret !== 'your_razorpay_key_secret'
+        (keyId.startsWith('rzp_live_') || keyId.startsWith('rzp_test_'))
+    );
+    const validSecret = Boolean(
+      keySecret && keySecret !== 'your_razorpay_key_secret'
     );
     res.json({
-      configured,
-      keyId: configured ? keyId : null,
-      mode: keyId.startsWith('rzp_live_') ? 'live' : keyId.startsWith('rzp_test_') ? 'test' : 'demo',
+      configured: validKeyId,
+      hasOrderSecret: validKeyId && validSecret,
+      keyId: validKeyId ? keyId : null,
+      mode: keyId.startsWith('rzp_live_')
+        ? 'live'
+        : keyId.startsWith('rzp_test_')
+          ? 'test'
+          : 'interactive',
     });
   });
 
@@ -694,6 +705,9 @@ async function startServer() {
     });
   });
 
+  // Always serve /src/assets/images statically in both dev and production builds
+  app.use('/src/assets/images', express.static(path.join(__dirname, 'src', 'assets', 'images')));
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -703,7 +717,7 @@ async function startServer() {
   } else {
     const distPath = path.join(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (_req, res) => {
+    app.use((_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

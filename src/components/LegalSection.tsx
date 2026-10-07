@@ -23,23 +23,23 @@ export const LegalSection: React.FC = () => {
   return (
     <section
       id="legal-section"
-      className="border-t border-white/10 bg-[#090507] py-20"
+      className="border-t border-white/10 bg-[#090507] py-14 sm:py-20 overflow-hidden"
     >
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* Header */}
         <div className="flex flex-col items-start justify-between gap-6 border-b border-white/10 pb-8 lg:flex-row lg:items-end">
-          <div>
-            <div className="flex items-center gap-2 font-mono text-xs text-red-400">
-              <Scale className="h-3.5 w-3.5" />
-              <span>OFFICIAL LEGAL & COMPLIANCE CENTER · TRANSPARENT POLICIES</span>
+          <div className="w-full lg:w-auto">
+            <div className="flex items-center gap-2 font-mono text-[11px] sm:text-xs text-red-400">
+              <Scale className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">OFFICIAL LEGAL & COMPLIANCE CENTER</span>
             </div>
             <h2
               style={{ textWrap: 'balance' }}
-              className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              className="mt-2 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white"
             >
               Terms of Service, Privacy & Community Guidelines
             </h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-400">
+            <p className="mt-2 max-w-2xl text-xs sm:text-sm text-slate-400">
               Clear, fair, and legally binding hosting agreements designed to protect Indian gamers, server owners, and community networks.
             </p>
           </div>
@@ -48,7 +48,7 @@ export const LegalSection: React.FC = () => {
           <div
             role="tablist"
             aria-label="Legal Policy Categories"
-            className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-[#12090e] p-1.5"
+            className="flex w-full lg:w-auto flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-[#12090e] p-1.5"
           >
             {[
               { id: 'all', label: 'All Policies' },

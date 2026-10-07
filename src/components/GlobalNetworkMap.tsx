@@ -280,17 +280,17 @@ export const GlobalNetworkMap: React.FC = () => {
   return (
     <section
       id="network-map-section"
-      className="mx-auto max-w-7xl px-6 py-16"
+      className="mx-auto w-full max-w-7xl overflow-hidden px-4 sm:px-6 py-12 sm:py-16"
     >
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <div className="font-mono text-xs font-semibold text-red-400">
             GLOBAL LOW-LATENCY INFRASTRUCTURE · ANYCAST BGP MESH
           </div>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-2 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white">
             8 Global Points of Presence
           </h2>
-          <p className="mt-1.5 max-w-2xl text-sm text-slate-400">
+          <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-slate-400">
             Direct Tier-1 peering across Mumbai, Noida (Delhi), Singapore, Europe, and North America with automatic Anycast DDoS mitigation.
           </p>
         </div>
@@ -298,7 +298,7 @@ export const GlobalNetworkMap: React.FC = () => {
         <button
           type="button"
           onClick={handleRunGlobalPing}
-          className="flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-600/15 px-4 py-2.5 font-mono text-xs font-semibold text-white transition-all hover:bg-red-600 hover:border-red-500 whitespace-nowrap"
+          className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-600/15 px-4 py-2.5 font-mono text-xs font-semibold text-white transition-all hover:bg-red-600 hover:border-red-500 whitespace-nowrap"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isPinging ? 'animate-spin' : ''}`} />
           <span>{isPinging ? 'Testing Global Latency...' : 'Ping All 8 Locations'}</span>
@@ -308,7 +308,7 @@ export const GlobalNetworkMap: React.FC = () => {
       {/* Main Map Card Container (Matching Screenshot 855) */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#08090f] shadow-[0_25px_70px_rgba(0,0,0,0.85)]">
         {/* Top Operational Status Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0b0d14] px-6 py-3.5 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#0b0d14] px-4 sm:px-6 py-3.5 text-[11px] sm:text-xs">
           <div className="flex items-center gap-2.5 font-mono font-bold tracking-wide text-emerald-400">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />

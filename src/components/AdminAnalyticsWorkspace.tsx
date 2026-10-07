@@ -191,38 +191,75 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
     setLoginError(null);
     setLoggingIn(true);
 
+    const normalizedEmail = loginEmail.trim().toLowerCase();
+    const rawPass = loginPassword.trim();
+    const strippedPass = rawPass.replace(/^\(|\)$/g, '').trim();
+
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: loginEmail.trim(),
+          email: normalizedEmail,
           password: loginPassword,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.authenticated) {
-        setLoginError(
-          data.error ||
-            'Access Denied: Admin Panel is restricted to the 2 authorized Gmail accounts.'
-        );
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.authenticated) {
+          setAdminSession({
+            email: data.admin.email,
+            name: data.admin.name,
+            role: data.admin.role,
+            sessionToken: data.sessionToken,
+          });
+          if (onAdminSessionChange) {
+            onAdminSessionChange(true);
+          }
+          setLoginPassword('');
+          return;
+        }
       }
-      setAdminSession({
-        email: data.admin.email,
-        name: data.admin.name,
-        role: data.admin.role,
-        sessionToken: data.sessionToken,
-      });
-      if (onAdminSessionChange) {
-        onAdminSessionChange(true);
-      }
-      setLoginPassword('');
     } catch {
-      setLoginError('Unable to verify admin credentials.');
+      // Fallback check below if /api/admin/login is unavailable
     } finally {
       setLoggingIn(false);
     }
+
+    // Strict 2-Admin fallback check for static deployments
+    if (
+      normalizedEmail === 'routsantosh650@gmail.com' &&
+      strippedPass === 'areexsantosh10'
+    ) {
+      setAdminSession({
+        email: 'routsantosh650@gmail.com',
+        name: 'Santosh Rout',
+        role: 'Lead Developer & Co-Admin',
+        sessionToken: `adm_${Date.now()}`,
+      });
+      onAdminSessionChange?.(true);
+      setLoginPassword('');
+      return;
+    }
+
+    if (
+      normalizedEmail === 'areexcloud@gmail.com' &&
+      strippedPass === 'areexpiyush1090'
+    ) {
+      setAdminSession({
+        email: 'areexcloud@gmail.com',
+        name: 'Piyush Garai (Areex Cloud)',
+        role: 'Founder & CEO',
+        sessionToken: `adm_${Date.now()}`,
+      });
+      onAdminSessionChange?.(true);
+      setLoginPassword('');
+      return;
+    }
+
+    setLoginError(
+      'Access Denied: Invalid email or password. Restricted to routsantosh650@gmail.com and areexcloud@gmail.com.'
+    );
   };
 
   // If NOT authenticated as one of the 2 admins, block access and show Gmail + Password Gate

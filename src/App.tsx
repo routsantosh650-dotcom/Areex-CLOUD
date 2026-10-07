@@ -28,6 +28,8 @@ import {
   Copy,
   Check,
   Tag,
+  Menu,
+  X,
 } from 'lucide-react';
 import {
   auth,
@@ -63,6 +65,7 @@ import { ContactSection } from './components/ContactSection';
 import { LegalSection } from './components/LegalSection';
 import { CustomerSupportChat } from './components/CustomerSupportSection';
 import { GlobalNetworkMap } from './components/GlobalNetworkMap';
+import { LiveUnder60SecondsSection } from './components/LiveUnder60SecondsSection';
 import { CheckoutModal, ProvisionedOrderRecord } from './components/CheckoutModal';
 import {
   AdminAnalyticsWorkspace,
@@ -105,14 +108,14 @@ const HeroTypewriterLine: React.FC = () => {
     <div
       data-testid="hero-typewriter-line"
       aria-label="MINECRAFT · BOT · KVM VPS · DOMAINS · MADE IN INDIA FOR INDIAN GAMERS · AES-256 ENCRYPTED"
-      className="inline-flex min-h-[28px] flex-wrap items-center justify-center rounded-lg border border-red-500/25 bg-black/55 px-3.5 py-1.5 font-mono text-xs tracking-wide backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.2)]"
+      className="inline-block max-w-full rounded-lg border border-red-500/25 bg-black/55 px-3 py-1.5 font-mono text-[10px] sm:text-xs leading-relaxed tracking-wide backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.2)] text-center break-words"
     >
       {HERO_TYPEWRITER_SEGMENTS.map((seg, idx) => {
         if (remaining <= 0) return null;
         const sliceText = seg.text.slice(0, remaining);
         remaining -= sliceText.length;
         return (
-          <span key={idx} className={seg.className} style={{ whiteSpace: 'pre-wrap' }}>
+          <span key={idx} className={seg.className}>
             {sliceText}
           </span>
         );
@@ -152,6 +155,7 @@ export default function App() {
   const [workspaceInitialTab, setWorkspaceInitialTab] =
     useState<AdminTabKey>('discount');
   const [supportChatOpen, setSupportChatOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -664,7 +668,10 @@ export default function App() {
   const hasDiscountOffer = discountOffer.trim().length > 0;
 
   return (
-    <div id="top" className="min-h-screen bg-[#090608] text-slate-100">
+    <div
+      id="top"
+      className="min-h-screen w-full max-w-full overflow-x-clip bg-[#090608] text-slate-100"
+    >
       {/* Custom Fluid GSAP Cursor */}
       <CustomCursor />
 
@@ -688,173 +695,248 @@ export default function App() {
         isAdminUnlocked={isAdminUnlocked}
       />
 
-      {/* Strict 1-Row, 3-Zone Top Bar Contract (With Official Areex Cloud Logo & Single Currency Slidebar) */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#090608]/90 px-6 py-3.5 backdrop-blur-md">
-        {/* Zone 1: Official Areex Cloud Logo + Brand Wordmark */}
-        <a
-          href="#top"
-          className="flex items-center gap-3 font-display text-lg font-bold tracking-tight text-white whitespace-nowrap"
-        >
-          <AreexLogo size="md" />
-          <span>{siteConfig.brandName}</span>
-        </a>
+      {/* Strict 1-Row, 3-Zone Top Bar Contract (Mobile & Desktop Responsive) */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#090608]/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 py-3">
+          {/* Zone 1: Official Areex Cloud Logo + Brand Wordmark */}
+          <a
+            href="#top"
+            className="flex items-center gap-2 sm:gap-3 font-display text-sm sm:text-lg font-bold tracking-tight text-white whitespace-nowrap shrink-0"
+          >
+            <AreexLogo size="sm" />
+            <span>{siteConfig.brandName}</span>
+          </a>
 
-        {/* Zone 2: Clean text navigation links (Plans, Features, Founder, Support, Legal, Contact) */}
-        <nav
-          aria-label="Primary Navigation"
-          className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-300"
-        >
-          <a
-            href="#pricing-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
+          {/* Zone 2: Clean text navigation links (Plans, Network Map, Features, Founder, Support, Legal, Contact) */}
+          <nav
+            aria-label="Primary Navigation"
+            className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-300"
           >
-            Plans
-          </a>
-          <a
-            href="#network-map-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Network Map
-          </a>
-          <a
-            href="#architecture-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Features
-          </a>
-          <a
-            href="#founder-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Founder
-          </a>
-          <a
-            href="#reviews-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Reviews
-          </a>
-          <button
-            type="button"
-            onClick={() => setSupportChatOpen(true)}
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            24/7 Support
-          </button>
-          <a
-            href="#legal-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Legal
-          </a>
-          <a
-            href="#contact-section"
-            className="hover:text-white transition-colors whitespace-nowrap"
-          >
-            Contact
-          </a>
-        </nav>
-
-        {/* Zone 3: Single Compact Currency Slidebar Button + Primary CTA (Admin Console only shown when Admin is unlocked) */}
-        <div className="flex items-center gap-2.5">
-          <CurrencySlidebar
-            currency={currency}
-            onCurrencyChange={setCurrency}
-            variant="nav"
-          />
-
-          {isAdminUnlocked ? (
+            <a
+              href="#pricing-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Plans
+            </a>
+            <a
+              href="#network-map-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Network Map
+            </a>
+            <a
+              href="#architecture-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Features
+            </a>
+            <a
+              href="#founder-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Founder
+            </a>
+            <a
+              href="#reviews-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Reviews
+            </a>
             <button
               type="button"
-              onClick={() => {
-                setWorkspaceInitialTab('discount');
-                setWorkspaceOpen(true);
-              }}
-              className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] transition-colors hover:bg-red-500 whitespace-nowrap"
+              onClick={() => setSupportChatOpen(true)}
+              className="hover:text-white transition-colors whitespace-nowrap"
             >
-              <Lock className="h-3.5 w-3.5" />
-              <span>Admin Console</span>
+              24/7 Support
             </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <a
-                href="#pricing-section"
-                className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] transition-colors hover:bg-red-500 whitespace-nowrap"
-              >
-                <Zap className="h-3.5 w-3.5" />
-                <span>Deploy Server</span>
-              </a>
+            <a
+              href="#legal-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Legal
+            </a>
+            <a
+              href="#contact-section"
+              className="hover:text-white transition-colors whitespace-nowrap"
+            >
+              Contact
+            </a>
+          </nav>
+
+          {/* Zone 3: Single Compact Currency Slidebar Button + Primary CTA */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <CurrencySlidebar
+              currency={currency}
+              onCurrencyChange={setCurrency}
+              variant="nav"
+            />
+
+            {isAdminUnlocked ? (
               <button
                 type="button"
                 onClick={() => {
                   setWorkspaceInitialTab('discount');
                   setWorkspaceOpen(true);
                 }}
-                title="Authorized 2-Admin Staff Login"
-                aria-label="Authorized 2-Admin Staff Login"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#120a0e] text-slate-400 transition-colors hover:border-red-500/40 hover:text-white"
+                className="flex items-center gap-1.5 rounded-xl bg-red-600 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] transition-colors hover:bg-red-500 whitespace-nowrap"
               >
                 <Lock className="h-3.5 w-3.5" />
+                <span>Admin Console</span>
               </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <a
+                  href="#pricing-section"
+                  className="hidden sm:flex items-center gap-1 rounded-xl bg-red-600 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] transition-colors hover:bg-red-500 whitespace-nowrap"
+                >
+                  <Zap className="h-3.5 w-3.5 shrink-0" />
+                  <span>Deploy Server</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWorkspaceInitialTab('discount');
+                    setWorkspaceOpen(true);
+                  }}
+                  title="Authorized 2-Admin Staff Login"
+                  aria-label="Authorized 2-Admin Staff Login"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#120a0e] text-slate-400 transition-colors hover:border-red-500/40 hover:text-white shrink-0"
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Mobile Hamburger Menu Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle Mobile Navigation Menu"
+              className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#120a0e] text-slate-200 hover:border-red-500/40 hover:text-white shrink-0"
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Dropdown Navigation Drawer */}
+        {mobileMenuOpen && (
+          <nav
+            aria-label="Mobile Navigation"
+            className="lg:hidden border-t border-white/10 bg-[#0d070a] px-4 py-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-200"
+          >
+            <a
+              href="#pricing-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Plans & Pricing
+            </a>
+            <a
+              href="#network-map-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              8 Global PoPs Map
+            </a>
+            <a
+              href="#architecture-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Features & Hardware
+            </a>
+            <a
+              href="#founder-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Meet the Founder
+            </a>
+            <a
+              href="#reviews-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Player Reviews
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setSupportChatOpen(true);
+              }}
+              className="rounded-lg bg-white/5 px-3 py-2 text-left hover:bg-red-600/20 hover:text-white"
+            >
+              24/7 Support Chat
+            </button>
+            <a
+              href="#legal-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Legal & ToS
+            </a>
+            <a
+              href="#contact-section"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-lg bg-white/5 px-3 py-2 hover:bg-red-600/20 hover:text-white"
+            >
+              Contact & Discord
+            </a>
+          </nav>
+        )}
       </header>
 
-      <main>
+      <main className="w-full max-w-full overflow-x-clip">
         {/* 1. HERO SECTION (Dynamic Category Visual Picture + Live Typewriter Line) */}
-        <section className="relative min-h-[680px] w-full overflow-hidden border-b border-white/10">
-          {!heroImgError ? (
-            <img
-              ref={heroImageRef}
-              key={activeCategoryMeta.imageUrl}
-              src={activeCategoryMeta.imageUrl}
-              alt={`${activeCategoryMeta.name} — ${activeCategoryMeta.headline}`}
-              referrerPolicy="no-referrer"
-              onError={() => setHeroImgError(true)}
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#2a0810] via-[#12060a] to-[#090608]" />
-          )}
+        <section className="relative min-h-[560px] sm:min-h-[680px] w-full overflow-hidden border-b border-white/10">
+          <img
+            ref={heroImageRef}
+            key={activeCategoryMeta.imageUrl}
+            src={heroImgError ? HERO_MINECRAFT_IMAGE : activeCategoryMeta.imageUrl}
+            alt={`${activeCategoryMeta.name} — ${activeCategoryMeta.headline}`}
+            onError={() => setHeroImgError(true)}
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
 
           {/* Measured Contrast Scrim so the category picture shines clearly while text stays crisp */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#090608] via-[#090608]/60 to-[#090608]/35" />
 
           {/* Semantic DOM Content Layer */}
-          <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-20 pb-16 text-center">
+          <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-4 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-16 text-center">
             {/* Live Typewriter Effect for MINECRAFT · BOT · KVM VPS · DOMAINS · MADE IN INDIA FOR INDIAN GAMERS · AES-256 ENCRYPTED */}
             <HeroTypewriterLine />
 
             <h1
               style={{ textWrap: 'balance' }}
-              className="mt-5 max-w-4xl font-display text-4xl font-extrabold tracking-tight text-white sm:text-6xl leading-[1.08]"
+              className="mt-5 max-w-4xl font-display text-2xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12] break-words"
             >
               {siteConfig.heroTitle}
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg">
+            <p className="mt-4 sm:mt-5 max-w-2xl text-xs sm:text-lg leading-relaxed text-slate-200">
               {siteConfig.heroSubtitle}
             </p>
 
             {/* Starting Price Callout in Selected Currency */}
-            <div className="mt-7 flex items-baseline gap-2 font-mono">
-              <span className="text-sm text-slate-300">Starting at</span>
-              <span className="text-3xl font-extrabold text-red-500 tabular-nums">
+            <div className="mt-6 sm:mt-7 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 font-mono">
+              <span className="text-xs sm:text-sm text-slate-300">Starting at</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-red-500 tabular-nums">
                 {formatPriceInCurrency(29, currency)}
               </span>
-              <span className="text-sm text-slate-400">/mo</span>
-              <span className="mx-2 text-slate-600">·</span>
+              <span className="text-xs sm:text-sm text-slate-400">/mo</span>
+              <span className="mx-1 text-slate-600">·</span>
               <span className="text-xs text-slate-200">
                 Minecraft SMPs from {formatPriceInCurrency(69, currency)}/mo
               </span>
             </div>
 
             {/* Primary Focal CTA + Support CTA */}
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-6 sm:mt-7 flex w-full sm:w-auto flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <a
                 href="#pricing-section"
-                className="flex items-center gap-2 rounded-xl bg-red-600 px-7 py-3.5 text-sm font-semibold text-white shadow-[0_0_35px_rgba(220,38,38,0.5)] transition-all hover:bg-red-500 whitespace-nowrap"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-red-600 px-6 sm:px-7 py-3.5 text-xs sm:text-sm font-semibold text-white shadow-[0_0_35px_rgba(220,38,38,0.5)] transition-all hover:bg-red-500 whitespace-nowrap"
               >
                 <Zap className="h-4 w-4" />
                 <span>Get Started — View Plans</span>
@@ -864,7 +946,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setSupportChatOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-white/20 bg-black/55 px-6 py-3.5 text-sm font-medium text-slate-100 backdrop-blur-md transition-colors hover:border-red-500/60 hover:text-white whitespace-nowrap"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/20 bg-black/55 px-6 py-3.5 text-xs sm:text-sm font-medium text-slate-100 backdrop-blur-md transition-colors hover:border-red-500/60 hover:text-white whitespace-nowrap"
               >
                 <span>24/7 Customer Support</span>
                 <ExternalLink className="h-4 w-4" />
@@ -875,7 +957,7 @@ export default function App() {
             <div
               role="tablist"
               aria-label="Quick Hosting Category Switcher"
-              className="mt-14 flex w-full max-w-4xl flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-[#0d070a]/90 p-2 shadow-2xl backdrop-blur-xl"
+              className="mt-10 sm:mt-14 grid grid-cols-2 sm:flex w-full max-w-4xl sm:flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-[#0d070a]/90 p-2 shadow-2xl backdrop-blur-xl"
             >
               {PLAN_CATEGORIES.map((cat) => {
                 const isSelected = activeCategory === cat.key;
@@ -888,14 +970,14 @@ export default function App() {
                     onClick={() => {
                       setActiveCategory(cat.key);
                     }}
-                    className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all whitespace-nowrap ${
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
                       isSelected
                         ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <span className="font-mono text-[11px] opacity-75">{cat.indexLabel}.</span>
-                    <span>{cat.name}</span>
+                    <span className="font-mono text-[10px] sm:text-[11px] opacity-75">{cat.indexLabel}.</span>
+                    <span className="truncate">{cat.name}</span>
                   </button>
                 );
               })}
@@ -904,7 +986,7 @@ export default function App() {
         </section>
 
         {/* 2. SIX-CATEGORY PRICING MATRIX + CONDITIONAL DISCOUNT OFFER BOARD & STRIKETHROUGH CUT PRICES */}
-        <section id="pricing-section" className="mx-auto max-w-7xl px-6 py-20">
+        <section id="pricing-section" className="mx-auto max-w-7xl px-4 sm:px-6 py-14 sm:py-20">
           {/* CONDITIONAL DISCOUNT OFFER BOARD: Only shown when discountOffer has text; completely hidden when empty */}
           {hasDiscountOffer && (
             <div
@@ -1002,7 +1084,7 @@ export default function App() {
           </div>
 
           {/* 6-Category Filter Tabs */}
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+          <div className="mt-6 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
             {PLAN_CATEGORIES.map((cat) => {
               const active = activeCategory === cat.key;
               return (
@@ -1010,7 +1092,7 @@ export default function App() {
                   key={cat.key}
                   type="button"
                   onClick={() => setActiveCategory(cat.key)}
-                  className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
+                  className={`rounded-lg px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold transition-colors whitespace-nowrap truncate ${
                     active
                       ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]'
                       : 'border border-white/10 bg-[#120a0e] text-slate-400 hover:border-white/25 hover:text-white'
@@ -1039,7 +1121,7 @@ export default function App() {
           ) : (
             <div
               ref={cardsContainerRef}
-              className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              className="mt-8 grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
               {visiblePlans.map((plan) => (
                 <InteractivePlanCard
@@ -1060,33 +1142,36 @@ export default function App() {
         {/* 2.5 GLOBAL 8 POINTS OF PRESENCE DOT-MATRIX WORLD MAP (Matching Screenshot 855) */}
         <GlobalNetworkMap />
 
+        {/* 2.6 LIVE IN UNDER 60 SECONDS INTERACTIVE BASH TERMINAL (Matching Screenshot 856) */}
+        <LiveUnder60SecondsSection />
+
         {/* 3. WHY CHOOSE AREEX CLOUD (6 KEY FEATURES) + INFRASTRUCTURE BENTO GRID */}
         <section
           id="architecture-section"
-          className="border-y border-white/10 bg-[#0d070a] py-20"
+          className="border-y border-white/10 bg-[#0d070a] py-14 sm:py-20 overflow-hidden"
         >
-          <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="max-w-2xl">
               <div className="font-mono text-xs text-red-400">
                 WHY CHOOSE AREEX CLOUD · ENTERPRISE ARCHITECTURE
               </div>
               <h2
                 style={{ textWrap: 'balance' }}
-                className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl"
+                className="mt-2 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white"
               >
                 Engineered for 20.0 TPS Under Heavy Modpack & Network Loads
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              <p className="mt-3 text-xs sm:text-sm leading-relaxed text-slate-400">
                 Every Areex Cloud container runs on liquid-cooled Ryzen 9 9950X and AMD EPYC hardware with full AES-256-GCM database encryption and sub-5ms Indian peering.
               </p>
             </div>
 
             {/* 6 Key Platform Features from Official Guide */}
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 sm:mt-10 grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {WHY_AREEX_FEATURES.map((feat) => (
                 <div
                   key={feat.badge}
-                  className="rounded-2xl border border-white/10 bg-[#120a0e] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-red-500/50"
+                  className="rounded-2xl border border-white/10 bg-[#120a0e] p-5 sm:p-6 transition-all duration-200 hover:-translate-y-1 hover:border-red-500/50"
                 >
                   <div className="font-mono text-[11px] font-bold text-red-400">
                     {feat.badge}
@@ -1101,17 +1186,17 @@ export default function App() {
               ))}
             </div>
 
-            <div className="mt-8 grid gap-6 lg:grid-cols-3">
+            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Bento Card 1 (col-span-2) */}
               <div className="flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#120a0e] lg:col-span-2">
-                <div className="p-6 sm:p-8">
+                <div className="p-5 sm:p-8">
                   <div className="font-mono text-xs text-red-400">
                     INSTANT MODPACK & PLUGIN DEPLOYMENT
                   </div>
-                  <h3 className="mt-2 font-display text-2xl font-bold text-white">
+                  <h3 className="mt-2 font-display text-xl sm:text-2xl font-bold text-white">
                     Built for RLCraft, All The Mods 9, PaperMC & Velocity Networks
                   </h3>
-                  <p className="mt-2 max-w-xl text-sm text-slate-300">
+                  <p className="mt-2 max-w-xl text-xs sm:text-sm text-slate-300">
                     Deploy heavy Forge, Fabric, and NeoForge modpacks with NVMe Gen5 disk throughput, automated hourly snapshots, and free migration from any host.
                   </p>
                   <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -1133,25 +1218,20 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="relative h-64 w-full border-t border-white/10">
-                  {!citadelImgError ? (
-                    <img
-                      src={CITADEL_SHOWCASE_IMAGE}
-                      alt="Minecraft crimson citadel build rendered with volumetric shaders"
-                      referrerPolicy="no-referrer"
-                      onError={() => setCitadelImgError(true)}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-r from-[#220910] to-[#090608]" />
-                  )}
+                <div className="relative h-56 sm:h-64 w-full border-t border-white/10">
+                  <img
+                    src={citadelImgError ? HERO_MINECRAFT_IMAGE : CITADEL_SHOWCASE_IMAGE}
+                    alt="Minecraft crimson citadel build rendered with volumetric shaders"
+                    onError={() => setCitadelImgError(true)}
+                    className="h-full w-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#120a0e] via-transparent to-transparent" />
                 </div>
               </div>
 
               {/* Bento Card 2 (col-span-1): Ryzen 9 9950X Datacenter Hardware */}
               <div className="flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#120a0e]">
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                   <div className="font-mono text-xs text-red-400">
                     MUMBAI & NOIDA HARDWARE
                   </div>
@@ -1178,17 +1258,12 @@ export default function App() {
                 </div>
 
                 <div className="relative h-48 w-full border-t border-white/10">
-                  {!rackImgError ? (
-                    <img
-                      src={HARDWARE_RACK_IMAGE}
-                      alt="Enterprise liquid-cooled AMD Ryzen and EPYC server rack with crimson LED accents"
-                      referrerPolicy="no-referrer"
-                      onError={() => setRackImgError(true)}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-[#1a0d12]" />
-                  )}
+                  <img
+                    src={rackImgError ? CITADEL_SHOWCASE_IMAGE : HARDWARE_RACK_IMAGE}
+                    alt="Enterprise liquid-cooled AMD Ryzen and EPYC server rack with crimson LED accents"
+                    onError={() => setRackImgError(true)}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               </div>
 
@@ -1253,15 +1328,15 @@ export default function App() {
         </section>
 
         {/* 4. MEET THE FOUNDER SECTION */}
-        <section id="founder-section" className="mx-auto max-w-5xl px-6 py-20">
+        <section id="founder-section" className="mx-auto max-w-5xl px-4 sm:px-6 py-14 sm:py-20 overflow-hidden">
           <div className="text-center">
             <div className="font-mono text-xs text-red-400">THE MIND BEHIND AREEX CLOUD</div>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="mt-2 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white">
               Meet the Founder
             </h2>
           </div>
 
-          <div className="mt-12 grid items-center gap-10 rounded-2xl border border-white/10 bg-[#120a0e] p-8 sm:p-10 md:grid-cols-12">
+          <div className="mt-8 sm:mt-12 grid grid-cols-1 items-center gap-8 sm:gap-10 rounded-2xl border border-white/10 bg-[#120a0e] p-5 sm:p-10 md:grid-cols-12">
             <div className="flex flex-col items-center text-center md:col-span-4">
               <div className="flex h-36 w-36 items-center justify-center rounded-full border-2 border-red-500/50 bg-gradient-to-br from-red-600 via-red-800 to-[#1a090d] font-display text-4xl font-extrabold text-white shadow-[0_0_50px_rgba(220,38,38,0.35)]">
                 PG
@@ -1323,20 +1398,20 @@ export default function App() {
         {/* 5. CUSTOMER REVIEWS SECTION */}
         <section
           id="reviews-section"
-          className="border-t border-white/10 bg-[#0d070a] py-20"
+          className="border-t border-white/10 bg-[#0d070a] py-14 sm:py-20 overflow-hidden"
         >
-          <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="text-center">
               <div className="font-mono text-xs text-red-400">COMMUNITY LOVE</div>
-              <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <h2 className="mt-2 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white">
                 What Players Are Saying
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-xs sm:text-sm text-slate-400">
                 Real reviews from real server owners across India.
               </p>
             </div>
 
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {PLAYER_REVIEWS.map((rev) => (
                 <article
                   key={rev.id}
@@ -1393,9 +1468,9 @@ export default function App() {
       </main>
 
       {/* Quiet Editorial Footer with Official Areex Cloud Logo */}
-      <footer className="border-t border-white/10 bg-[#070406] px-6 py-12 text-xs text-slate-400">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3">
+      <footer className="border-t border-white/10 bg-[#070406] px-4 sm:px-6 py-10 sm:py-12 text-xs text-slate-400 overflow-hidden">
+        <div className="mx-auto flex max-w-7xl flex-col items-center text-center sm:items-center sm:text-left justify-between gap-6 sm:flex-row">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
             <AreexLogo size="md" />
             <div>
               <div className="font-display text-base font-bold text-white">
@@ -1407,7 +1482,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <a href="#pricing-section" className="hover:text-white transition-colors">
               Plans
             </a>

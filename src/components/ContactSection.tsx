@@ -88,9 +88,9 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   return (
     <section
       id="contact-section"
-      className="border-t border-white/10 bg-[#0c0609] py-20"
+      className="border-t border-white/10 bg-[#0c0609] py-14 sm:py-20 overflow-hidden"
     >
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center">
           <div className="font-mono text-xs text-red-400">
             OFFICIAL COMMUNITY & DIRECT SUPPORT CHANNELS
@@ -107,12 +107,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
         </div>
 
         {/* 3 Official Social Platform Cards with Brand Logos & Direct Launch Buttons */}
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+        <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-3">
           {platforms.map((p) => (
             <div
               key={p.id}
               data-plan-card
-              className={`group flex flex-col justify-between rounded-2xl border border-white/10 bg-[#12090e] p-7 transition-all duration-200 hover:-translate-y-1.5 ${p.accentHover}`}
+              className={`group flex flex-col justify-between rounded-2xl border border-white/10 bg-[#12090e] p-5 sm:p-7 transition-all duration-200 hover:-translate-y-1.5 ${p.accentHover}`}
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -205,7 +205,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
               ) : (
                 <form
                   onSubmit={handleDirectInquiry}
-                  className="grid gap-3 sm:grid-cols-3"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                 >
                   <input
                     type="text"
@@ -214,7 +214,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                     onChange={(e) => setSenderName(e.target.value)}
                     placeholder="Your Name / IGN"
                     aria-label="Your Name or Minecraft IGN"
-                    className="rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                    className="w-full min-w-0 rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
                   />
                   <input
                     type="email"
@@ -223,9 +223,9 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                     onChange={(e) => setSenderEmail(e.target.value)}
                     placeholder="Your Email or Discord Tag"
                     aria-label="Your Email or Discord Tag"
-                    className="rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                    className="w-full min-w-0 rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
                   />
-                  <div className="flex gap-2 sm:col-span-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:col-span-2">
                     <input
                       type="text"
                       required
@@ -233,11 +233,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                       onChange={(e) => setSenderMessage(e.target.value)}
                       placeholder="Describe your server player count, modpack, or migration request..."
                       aria-label="Your Inquiry Message"
-                      className="flex-1 rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                      className="w-full min-w-0 flex-1 rounded-xl border border-white/15 bg-[#090608] px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
                     />
                     <button
                       type="submit"
-                      className="flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-red-500 whitespace-nowrap"
+                      className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-red-500 whitespace-nowrap"
                     >
                       <Send className="h-3.5 w-3.5" />
                       <span>Send Inquiry</span>

@@ -262,13 +262,13 @@ export const CustomerSupportChat: React.FC<CustomerSupportChatProps> = ({
   return (
     <>
       {/* Floating Bottom-Right 24/7 Support Chat Trigger Button */}
-      <div className="fixed bottom-4 right-4 z-40">
+      <div className="fixed bottom-4 right-3 sm:right-4 z-40">
         <button
           type="button"
           onClick={() => onToggleOpen(!open)}
           aria-expanded={open}
           aria-label="Toggle 24/7 Customer Support Chat"
-          className="flex items-center gap-2.5 rounded-full border border-red-500/60 bg-gradient-to-r from-red-600 to-[#991b1b] px-4 py-3 text-xs font-semibold text-white shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 whitespace-nowrap"
+          className="flex items-center gap-2 rounded-full border border-red-500/60 bg-gradient-to-r from-red-600 to-[#991b1b] px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs font-semibold text-white shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 whitespace-nowrap"
         >
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -285,7 +285,7 @@ export const CustomerSupportChat: React.FC<CustomerSupportChatProps> = ({
           ref={chatBoxRef}
           role="dialog"
           aria-label="Areex Cloud 24/7 Support Mini Chat"
-          className="fixed bottom-20 right-4 z-50 flex w-[340px] sm:w-[380px] flex-col overflow-hidden rounded-2xl border border-red-500/45 bg-[#10070b]/95 text-slate-100 shadow-[0_25px_65px_rgba(0,0,0,0.92)] backdrop-blur-xl"
+          className="fixed bottom-18 sm:bottom-20 right-3 sm:right-4 z-50 flex w-[calc(100vw-1.5rem)] max-w-[375px] flex-col overflow-hidden rounded-2xl border border-red-500/45 bg-[#10070b]/95 text-slate-100 shadow-[0_25px_65px_rgba(0,0,0,0.92)] backdrop-blur-xl"
         >
           {/* Chat Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-red-950/80 via-[#19090f] to-[#10070b] px-4 py-3">
