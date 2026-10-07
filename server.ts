@@ -404,21 +404,40 @@ async function startServer() {
   });
 
   // Live Razorpay Integration Endpoints (Order Creation + HMAC-SHA256 Signature Verification)
-  app.get('/api/razorpay/config', (_req, res) => {
-    const keyId = (
+  const LIVE_RAZORPAY_KEY_ID = 'rzp_live_TkinQdreXQa5Ww';
+  const LIVE_RAZORPAY_KEY_SECRET = 'TNsZKV79vTgoMNLJkw7qJ8zH';
+
+  const getRazorpayKeyId = () => {
+    const envKey = (
       process.env.RAZORPAY_KEY_ID ||
       process.env.VITE_RAZORPAY_KEY_ID ||
       ''
     ).trim();
-    const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+    if (
+      envKey &&
+      envKey !== 'rzp_live_or_test_key_id' &&
+      (envKey.startsWith('rzp_live_') || envKey.startsWith('rzp_test_'))
+    ) {
+      return envKey;
+    }
+    return LIVE_RAZORPAY_KEY_ID;
+  };
+
+  const getRazorpayKeySecret = () => {
+    const envSecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+    if (envSecret && envSecret !== 'your_razorpay_key_secret') {
+      return envSecret;
+    }
+    return LIVE_RAZORPAY_KEY_SECRET;
+  };
+
+  app.get('/api/razorpay/config', (_req, res) => {
+    const keyId = getRazorpayKeyId();
+    const keySecret = getRazorpayKeySecret();
     const validKeyId = Boolean(
-      keyId &&
-        keyId !== 'rzp_live_or_test_key_id' &&
-        (keyId.startsWith('rzp_live_') || keyId.startsWith('rzp_test_'))
+      keyId && (keyId.startsWith('rzp_live_') || keyId.startsWith('rzp_test_'))
     );
-    const validSecret = Boolean(
-      keySecret && keySecret !== 'your_razorpay_key_secret'
-    );
+    const validSecret = Boolean(keySecret);
     res.json({
       configured: validKeyId,
       hasOrderSecret: validKeyId && validSecret,
@@ -433,8 +452,8 @@ async function startServer() {
 
   app.post('/api/razorpay/create-order', async (req, res) => {
     try {
-      const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
-      const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+      const keyId = getRazorpayKeyId();
+      const keySecret = getRazorpayKeySecret();
       if (!keyId || !keySecret) {
         res.status(400).json({
           error: 'Razorpay API keys (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) are not configured yet.',
@@ -499,7 +518,7 @@ async function startServer() {
 
   app.post('/api/razorpay/verify-payment', (req, res) => {
     try {
-      const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+      const keySecret = getRazorpayKeySecret();
       const {
         razorpay_order_id,
         razorpay_payment_id,
