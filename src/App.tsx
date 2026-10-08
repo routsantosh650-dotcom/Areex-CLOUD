@@ -128,6 +128,79 @@ const HeroTypewriterLine: React.FC = () => {
   );
 };
 
+const LOCAL_PLAN_OVERRIDES_KEY = 'areex_plan_overrides_v2';
+const LOCAL_DELETED_PLANS_KEY = 'areex_deleted_plans_v2';
+
+function readLocalPlanOverrides(): HostingPlanItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PLAN_OVERRIDES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalPlanOverrides(overrides: HostingPlanItem[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LOCAL_PLAN_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function readLocalDeletedPlanIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_DELETED_PLANS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalDeletedPlanIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LOCAL_DELETED_PLANS_KEY, JSON.stringify(ids));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function buildMergedPlans(
+  baseList: HostingPlanItem[],
+  extraOverrides: HostingPlanItem[] = [],
+  extraDeletedIds: string[] = []
+): HostingPlanItem[] {
+  const deletedSet = new Set<string>([
+    ...readLocalDeletedPlanIds(),
+    ...extraDeletedIds,
+  ]);
+  const map = new Map<string, HostingPlanItem>();
+  baseList.forEach((p) => {
+    if (!deletedSet.has(p.id)) {
+      map.set(p.id, p);
+    }
+  });
+  readLocalPlanOverrides().forEach((ov) => {
+    if (ov && ov.id && !deletedSet.has(ov.id)) {
+      map.set(ov.id, ov);
+    }
+  });
+  extraOverrides.forEach((ov) => {
+    if (ov && ov.id && !deletedSet.has(ov.id)) {
+      map.set(ov.id, ov);
+    }
+  });
+  return Array.from(map.values());
+}
+
 export default function App() {
   const [showLoader, setShowLoader] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -139,7 +212,9 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<PlanCategoryKey>('premium');
   const [currency, setCurrency] = useState<CurrencyCode>('INR');
   const [searchQuery, setSearchQuery] = useState('');
-  const [plans, setPlans] = useState<HostingPlanItem[]>(INITIAL_HOSTING_PLANS);
+  const [plans, setPlans] = useState<HostingPlanItem[]>(() =>
+    buildMergedPlans(INITIAL_HOSTING_PLANS)
+  );
   const [siteConfig, setSiteConfig] = useState<SiteConfigData>(DEFAULT_SITE_CONFIG);
   const [discountOffer, setDiscountOffer] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<number>(20);
@@ -205,17 +280,26 @@ export default function App() {
     fetch('/api/plans')
       .then((r) => r.json())
       .then((d) => {
-        if (Array.isArray(d.plans) && d.plans.length > 0) {
-          setPlans((prev) => {
-            const byId = new Map<string, HostingPlanItem>();
-            prev.forEach((p) => byId.set(p.id, p));
-            d.plans.forEach((override: HostingPlanItem) => {
-              if (override && override.id) {
-                byId.set(override.id, override);
-              }
-            });
-            return Array.from(byId.values());
+        const serverOverrides: HostingPlanItem[] = Array.isArray(d.plans) ? d.plans : [];
+        const serverDeleted: string[] = Array.isArray(d.deletedPlanIds)
+          ? d.deletedPlanIds.map(String)
+          : [];
+        if (serverDeleted.length > 0) {
+          const mergedDeleted = Array.from(
+            new Set([...readLocalDeletedPlanIds(), ...serverDeleted])
+          );
+          writeLocalDeletedPlanIds(mergedDeleted);
+        }
+        if (serverOverrides.length > 0) {
+          const byId = new Map<string, HostingPlanItem>();
+          readLocalPlanOverrides().forEach((p) => byId.set(p.id, p));
+          serverOverrides.forEach((p) => {
+            if (p && p.id) byId.set(p.id, p);
           });
+          writeLocalPlanOverrides(Array.from(byId.values()));
+        }
+        if (serverOverrides.length > 0 || serverDeleted.length > 0) {
+          setPlans((prev) => buildMergedPlans(prev, serverOverrides, serverDeleted));
         }
       })
       .catch(() => {});
@@ -240,10 +324,12 @@ export default function App() {
           const remotePlans: HostingPlanItem[] = [];
           snapshot.forEach((docSnap) => {
             const d = docSnap.data();
+            const descText = String(d.tagline || d.description || '');
             remotePlans.push({
               id: docSnap.id,
               name: String(d.name || 'Plan'),
-              tagline: String(d.tagline || ''),
+              tagline: descText,
+              description: descText,
               category: (d.category as PlanCategoryKey) || 'budget',
               priceInr: Number(d.priceInr) || 99,
               originalPriceInr: d.originalPriceInr ? Number(d.originalPriceInr) : undefined,
@@ -253,15 +339,15 @@ export default function App() {
               storage: String(d.storage || '25 GB Storage'),
               speed: String(d.speed || '1 Gbps Speed'),
               popular: Boolean(d.popular),
-              features: Array.isArray(d.features) ? d.features.map(String) : ['24/7 Support'],
+              features: Array.isArray(d.features) ? d.features.map(String) : [],
               sortOrder: Number(d.sortOrder) || 1,
             });
           });
           setPlans((prev) => {
-            const map = new Map<string, HostingPlanItem>();
-            prev.forEach((p) => map.set(p.id, p));
-            remotePlans.forEach((p) => map.set(p.id, p));
-            return Array.from(map.values());
+            const baseMap = new Map<string, HostingPlanItem>();
+            prev.forEach((p) => baseMap.set(p.id, p));
+            remotePlans.forEach((p) => baseMap.set(p.id, p));
+            return buildMergedPlans(Array.from(baseMap.values()));
           });
         }
       },
@@ -558,44 +644,58 @@ export default function App() {
     }
   };
 
-  // No-Code Admin Plan Save (persists both priceInr and originalPriceInr cut price)
+  // No-Code Admin Plan Save (persists custom description, features, priceInr & originalPriceInr cut price)
   const handleSavePlan = async (updatedPlan: HostingPlanItem) => {
+    const customDesc = updatedPlan.tagline?.trim() || updatedPlan.description?.trim() || '';
+    const normalizedPlan: HostingPlanItem = {
+      ...updatedPlan,
+      tagline: customDesc,
+      description: customDesc,
+      features: Array.isArray(updatedPlan.features) ? updatedPlan.features : [],
+    };
+
+    // Persist in localStorage overrides & clear from deletedIds if re-added
+    const currentDeleted = readLocalDeletedPlanIds().filter((id) => id !== normalizedPlan.id);
+    writeLocalDeletedPlanIds(currentDeleted);
+    const currentOverrides = readLocalPlanOverrides().filter((p) => p.id !== normalizedPlan.id);
+    writeLocalPlanOverrides([...currentOverrides, normalizedPlan]);
+
     setPlans((prev) => {
-      const exists = prev.some((p) => p.id === updatedPlan.id);
+      const exists = prev.some((p) => p.id === normalizedPlan.id);
       if (exists) {
-        return prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p));
+        return prev.map((p) => (p.id === normalizedPlan.id ? normalizedPlan : p));
       }
-      return [...prev, updatedPlan];
+      return [...prev, normalizedPlan];
     });
 
     await fetch('/api/plans', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: updatedPlan }),
+      body: JSON.stringify({ plan: normalizedPlan }),
     }).catch(() => {});
 
     if (currentUser && isFirebaseAdmin) {
-      const safeId = updatedPlan.id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+      const safeId = normalizedPlan.id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
       const boundedFeatures = (
-        updatedPlan.features.length > 0 ? updatedPlan.features : ['24/7 Support']
+        normalizedPlan.features.length > 0 ? normalizedPlan.features : ['24/7 Support']
       )
         .slice(0, 10)
         .map((f) => f.slice(0, 120));
 
       try {
         await setDoc(doc(db, 'plans', safeId), {
-          name: updatedPlan.name.slice(0, 60),
-          tagline: updatedPlan.tagline.slice(0, 120),
-          category: updatedPlan.category,
-          priceInr: Math.min(500000, Math.max(1, Math.round(updatedPlan.priceInr))),
-          billingPeriod: updatedPlan.billingPeriod,
-          ram: updatedPlan.ram.slice(0, 40),
-          cpu: updatedPlan.cpu.slice(0, 60),
-          storage: updatedPlan.storage.slice(0, 50),
-          speed: updatedPlan.speed.slice(0, 60),
-          popular: Boolean(updatedPlan.popular),
+          name: normalizedPlan.name.slice(0, 60),
+          tagline: (customDesc || 'Custom Hosting Plan').slice(0, 120),
+          category: normalizedPlan.category,
+          priceInr: Math.min(500000, Math.max(1, Math.round(normalizedPlan.priceInr))),
+          billingPeriod: normalizedPlan.billingPeriod,
+          ram: normalizedPlan.ram.slice(0, 40),
+          cpu: normalizedPlan.cpu.slice(0, 60),
+          storage: normalizedPlan.storage.slice(0, 50),
+          speed: normalizedPlan.speed.slice(0, 60),
+          popular: Boolean(normalizedPlan.popular),
           features: boundedFeatures,
-          sortOrder: Math.min(1000, Math.max(0, Math.round(updatedPlan.sortOrder))),
+          sortOrder: Math.min(1000, Math.max(0, Math.round(normalizedPlan.sortOrder))),
           authorId: currentUser.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -608,6 +708,10 @@ export default function App() {
 
   // No-Code Admin Plan Delete
   const handleDeletePlan = async (planId: string) => {
+    const nextDeleted = Array.from(new Set([...readLocalDeletedPlanIds(), planId]));
+    writeLocalDeletedPlanIds(nextDeleted);
+    writeLocalPlanOverrides(readLocalPlanOverrides().filter((p) => p.id !== planId));
+
     setPlans((prev) => prev.filter((p) => p.id !== planId));
     await fetch(`/api/plans/${encodeURIComponent(planId)}`, {
       method: 'DELETE',

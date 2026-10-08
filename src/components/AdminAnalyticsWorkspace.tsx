@@ -126,6 +126,8 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
   const [nodes, setNodes] = useState<NodeTelemetry[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<PlanCategoryKey>('premium');
   const [editingPlan, setEditingPlan] = useState<HostingPlanItem | null>(null);
+  const [featuresText, setFeaturesText] = useState<string>('');
+  const [isNewPlanDraft, setIsNewPlanDraft] = useState<boolean>(false);
   const [configDraft, setConfigDraft] = useState<SiteConfigData>(siteConfig);
   const [discountInput, setDiscountInput] = useState<string>(discountOffer);
   const [discountPctInput, setDiscountPctInput] = useState<number>(discountPercent || 20);
@@ -423,8 +425,12 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
   };
 
   const handleStartEditPlan = (item: HostingPlanItem) => {
+    setIsNewPlanDraft(false);
+    setFeaturesText((item.features || []).join('\n'));
     setEditingPlan({
       ...item,
+      tagline: item.tagline || '',
+      description: item.description || '',
       originalPriceInr:
         item.originalPriceInr && item.originalPriceInr > item.priceInr
           ? item.originalPriceInr
@@ -433,26 +439,23 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
   };
 
   const handleCreateNewPlan = () => {
+    setIsNewPlanDraft(true);
+    setFeaturesText('');
     const newPlan: HostingPlanItem = {
       id: `${selectedCategory}_custom_${Date.now()}`,
-      name: 'New Custom Plan',
-      tagline: 'Custom tier configured via No-Code Admin',
+      name: '',
+      tagline: '',
+      description: '',
       category: selectedCategory,
-      priceInr: 599,
-      originalPriceInr: 799,
+      priceInr: 199,
+      originalPriceInr: 299,
       billingPeriod: selectedCategory === 'domain' ? '/yr' : '/mo',
-      ram: '32 GB RAM',
-      cpu: '800% CPU',
-      storage: '400 GB NVMe',
-      speed: '5 Gbps Speed',
+      ram: '8 GB RAM',
+      cpu: '200% CPU',
+      storage: '50 GB NVMe',
+      speed: '1 Gbps Speed',
       popular: false,
-      features: [
-        '32 GB DDR5 RAM',
-        '800% Ryzen 9 9950X CPU',
-        '400 GB NVMe Storage',
-        'Advanced DDoS Protection',
-        '24/7 VIP Support',
-      ],
+      features: [],
       sortOrder: filteredPlans.length + 1,
     };
     setEditingPlan(newPlan);
@@ -461,14 +464,23 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
   const handlePlanFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlan) return;
-    await onSavePlan(editingPlan);
+    const customFeatures = featuresText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const customDesc = editingPlan.tagline.trim() || editingPlan.description?.trim() || '';
+    const finalPlan: HostingPlanItem = {
+      ...editingPlan,
+      name: editingPlan.name.trim() || 'Custom Plan',
+      tagline: customDesc,
+      description: customDesc,
+      features: customFeatures,
+    };
+    await onSavePlan(finalPlan);
     setEditingPlan(null);
+    setIsNewPlanDraft(false);
     showToast(
-      `Saved "${editingPlan.name}" (₹${editingPlan.priceInr}${
-        editingPlan.originalPriceInr
-          ? ` with cut price ₹${editingPlan.originalPriceInr}`
-          : ''
-      }).`
+      `Saved "${finalPlan.name}" — custom description & features saved!`
     );
   };
 
@@ -965,36 +977,47 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                     className="space-y-4 rounded-xl border border-red-500/30 bg-[#090608] p-5"
                   >
                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                      <h3 className="font-display text-sm font-bold text-white">
-                        Editing Plan & Cut Price: {editingPlan.name}
-                      </h3>
+                      <div>
+                        <h3 className="font-display text-sm font-bold text-white">
+                          {isNewPlanDraft
+                            ? `Add New Custom Plan to ${selectedCategory.toUpperCase()}`
+                            : `Editing Plan: ${editingPlan.name}`}
+                        </h3>
+                        <p className="mt-0.5 text-[11px] text-slate-400">
+                          Write your own custom description, specs, and feature bullet points below — everything saves directly to this plan.
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setEditingPlan(null)}
-                        className="text-xs text-slate-400 hover:text-white"
+                        onClick={() => {
+                          setEditingPlan(null);
+                          setIsNewPlanDraft(false);
+                        }}
+                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300 hover:text-white"
                       >
                         Cancel
                       </button>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div>
+                    <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="sm:col-span-2">
                         <label
                           htmlFor="edit-plan-name"
-                          className="block text-xs text-slate-400"
+                          className="block text-xs font-medium text-slate-300"
                         >
-                          Plan Name
+                          Plan Name *
                         </label>
                         <input
                           id="edit-plan-name"
                           type="text"
                           required
                           maxLength={60}
+                          placeholder="e.g. Elite Plus / Starter SMP"
                           value={editingPlan.name}
                           onChange={(e) =>
                             setEditingPlan({ ...editingPlan, name: e.target.value })
                           }
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 text-xs text-white"
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
                         />
                       </div>
 
@@ -1003,7 +1026,7 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                           htmlFor="edit-plan-price"
                           className="block text-xs font-semibold text-emerald-400"
                         >
-                          New Offer Price (₹ INR)
+                          Offer Price (₹ INR) *
                         </label>
                         <input
                           id="edit-plan-price"
@@ -1030,7 +1053,7 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                               };
                             });
                           }}
-                          className="mt-1 w-full rounded-lg border border-emerald-500/40 bg-[#140c10] px-3 py-2 font-mono text-xs text-white"
+                          className="mt-1 w-full rounded-lg border border-emerald-500/40 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-emerald-400 focus:outline-none"
                         />
                       </div>
 
@@ -1039,7 +1062,7 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                           htmlFor="edit-plan-cut-price"
                           className="block text-xs font-semibold text-red-400"
                         >
-                          Cut / Strikethrough Price (₹ INR)
+                          Cut Price (₹ INR)
                         </label>
                         <input
                           id="edit-plan-cut-price"
@@ -1056,54 +1079,164 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                               originalPriceInr: Number(e.target.value) || undefined,
                             })
                           }
-                          className="mt-1 w-full rounded-lg border border-red-500/40 bg-[#140c10] px-3 py-2 font-mono text-xs text-slate-300"
+                          className="mt-1 w-full rounded-lg border border-red-500/40 bg-[#140c10] px-3 py-2 font-mono text-xs text-slate-300 focus:border-red-500 focus:outline-none"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-xs text-slate-400">Tagline</label>
-                        <input
-                          type="text"
+                      {/* Custom Plan Description (Subtitle / Tagline + Detailed Description) */}
+                      <div className="sm:col-span-3">
+                        <label
+                          htmlFor="edit-plan-description"
+                          className="block text-xs font-semibold text-white"
+                        >
+                          Custom Plan Description (Shown below Plan Title on Card) *
+                        </label>
+                        <textarea
+                          id="edit-plan-description"
+                          rows={2}
                           required
-                          maxLength={120}
+                          maxLength={300}
+                          placeholder="Write your custom description for this plan (e.g. Best for 20-30 player survival SMPs, modpacks & BungeeCord networks)..."
                           value={editingPlan.tagline}
                           onChange={(e) =>
-                            setEditingPlan({ ...editingPlan, tagline: e.target.value })
+                            setEditingPlan({
+                              ...editingPlan,
+                              tagline: e.target.value,
+                              description: e.target.value,
+                            })
                           }
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 text-xs text-white"
+                          className="mt-1 w-full rounded-lg border border-white/20 bg-[#140c10] px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs text-slate-400">RAM Allocation</label>
+                        <label
+                          htmlFor="edit-plan-billing"
+                          className="block text-xs text-slate-400"
+                        >
+                          Billing Cycle
+                        </label>
+                        <select
+                          id="edit-plan-billing"
+                          value={editingPlan.billingPeriod}
+                          onChange={(e) =>
+                            setEditingPlan({
+                              ...editingPlan,
+                              billingPeriod: e.target.value === '/yr' ? '/yr' : '/mo',
+                            })
+                          }
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                        >
+                          <option value="/mo">Monthly (/mo)</option>
+                          <option value="/yr">Yearly (/yr)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400">RAM Allocation *</label>
                         <input
                           type="text"
                           required
                           maxLength={40}
+                          placeholder="e.g. 16 GB RAM"
                           value={editingPlan.ram}
                           onChange={(e) =>
                             setEditingPlan({ ...editingPlan, ram: e.target.value })
                           }
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white"
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs text-slate-400">CPU Allocation</label>
+                        <label className="block text-xs text-slate-400">CPU Allocation *</label>
                         <input
                           type="text"
                           required
                           maxLength={60}
+                          placeholder="e.g. 400% CPU"
                           value={editingPlan.cpu}
                           onChange={(e) =>
                             setEditingPlan({ ...editingPlan, cpu: e.target.value })
                           }
-                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white"
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400">Storage Allocation *</label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={50}
+                          placeholder="e.g. 120 GB NVMe"
+                          value={editingPlan.storage}
+                          onChange={(e) =>
+                            setEditingPlan({ ...editingPlan, storage: e.target.value })
+                          }
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-400">Network Speed *</label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={60}
+                          placeholder="e.g. 5 Gbps Speed"
+                          value={editingPlan.speed}
+                          onChange={(e) =>
+                            setEditingPlan({ ...editingPlan, speed: e.target.value })
+                          }
+                          className="mt-1 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Custom Features / Bullet List Editor */}
+                      <div className="sm:col-span-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label
+                            htmlFor="edit-plan-features"
+                            className="block text-xs font-semibold text-white"
+                          >
+                            Custom Plan Features / Specifications List (1 Feature per Line)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const synced = [
+                                editingPlan.ram,
+                                editingPlan.cpu,
+                                editingPlan.speed,
+                                editingPlan.storage,
+                                'Unlimited Databases',
+                                'DDoS Protection',
+                                '24/7 VIP Support',
+                              ].filter((x) => x && x.trim().length > 0);
+                              setFeaturesText(synced.join('\n'));
+                            }}
+                            className="rounded border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300 hover:border-red-500/40 hover:text-white"
+                          >
+                            Sync from RAM / CPU / Storage Specs
+                          </button>
+                        </div>
+                        <textarea
+                          id="edit-plan-features"
+                          rows={5}
+                          value={featuresText}
+                          onChange={(e) => setFeaturesText(e.target.value)}
+                          placeholder={
+                            '16 GB DDR5 RAM\n400% CPU Allocation\n120 GB NVMe Storage\n5 Gbps Network Speed\nDDoS Protection\n24/7 Support'
+                          }
+                          className="mt-1.5 w-full rounded-lg border border-white/15 bg-[#140c10] px-3 py-2 font-mono text-xs leading-relaxed text-white placeholder-slate-500 focus:border-red-500 focus:outline-none"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          Each line above will appear with a checkmark on this plan&apos;s card. Write any custom features or details you want.
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
                       <label className="flex items-center gap-2 text-xs text-slate-300">
                         <input
                           type="checkbox"
@@ -1118,10 +1251,10 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
 
                       <button
                         type="submit"
-                        className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500"
+                        className="flex items-center gap-1.5 rounded-lg bg-red-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-red-500"
                       >
                         <Save className="h-3.5 w-3.5" />
-                        <span>Save Plan & Cut Price</span>
+                        <span>Save Plan & Custom Description</span>
                       </button>
                     </div>
                   </form>
@@ -1130,9 +1263,8 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-white/10 text-slate-400">
-                          <th className="p-3.5 font-medium">Plan Name</th>
-                          <th className="p-3.5 font-medium">RAM</th>
-                          <th className="p-3.5 font-medium">CPU</th>
+                          <th className="p-3.5 font-medium">Plan Name & Custom Description</th>
+                          <th className="p-3.5 font-medium">RAM / CPU / Storage</th>
                           <th className="p-3.5 font-medium text-right">
                             Cut Price (When Offer Active)
                           </th>
@@ -1145,16 +1277,23 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                           const cutVal = getPlanCutPriceInr(item, discountPercent);
                           return (
                             <tr key={item.id} className="hover:bg-white/[0.02]">
-                              <td className="p-3.5 font-sans font-semibold text-white">
-                                {item.name}{' '}
-                                {item.popular && (
-                                  <span className="ml-1.5 font-mono text-[11px] text-red-400">
-                                    · POPULAR
-                                  </span>
-                                )}
+                              <td className="p-3.5 font-sans">
+                                <div className="font-semibold text-white">
+                                  {item.name}{' '}
+                                  {item.popular && (
+                                    <span className="ml-1.5 font-mono text-[11px] text-red-400">
+                                      · POPULAR
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-0.5 text-[11px] text-slate-400 line-clamp-2">
+                                  {item.tagline || item.description || 'No custom description'}
+                                </div>
                               </td>
-                              <td className="p-3.5 text-slate-300">{item.ram}</td>
-                              <td className="p-3.5 text-slate-300">{item.cpu}</td>
+                              <td className="p-3.5 text-slate-300">
+                                <div>{item.ram} · {item.cpu}</div>
+                                <div className="text-[11px] text-slate-500">{item.storage} · {item.speed}</div>
+                              </td>
                               <td className="p-3.5 text-right text-slate-500 line-through decoration-red-500">
                                 ₹{cutVal}
                               </td>
@@ -1169,7 +1308,7 @@ export const AdminAnalyticsWorkspace: React.FC<AdminAnalyticsWorkspaceProps> = (
                                     onClick={() => handleStartEditPlan(item)}
                                     className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-slate-200 hover:border-red-500/50 hover:text-white"
                                   >
-                                    Edit Price
+                                    Edit Plan & Description
                                   </button>
                                   <button
                                     type="button"

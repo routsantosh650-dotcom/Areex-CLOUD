@@ -13,6 +13,7 @@ export interface HostingPlanItem {
   id: string;
   name: string;
   tagline: string;
+  description?: string;
   category: PlanCategoryKey;
   priceInr: number;
   originalPriceInr?: number;

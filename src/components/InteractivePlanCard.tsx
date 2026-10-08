@@ -124,7 +124,18 @@ export const InteractivePlanCard: React.FC<InteractivePlanCardProps> = ({
         <h3 className="mt-2.5 font-display text-2xl font-bold text-white transition-colors group-hover:text-red-400">
           {plan.name}
         </h3>
-        <p className="mt-1 text-xs text-slate-400">{plan.tagline}</p>
+        {plan.tagline && (
+          <p className="mt-1 text-xs leading-relaxed text-slate-300 whitespace-pre-line">
+            {plan.tagline}
+          </p>
+        )}
+        {plan.description &&
+          plan.description.trim().length > 0 &&
+          plan.description.trim() !== plan.tagline.trim() && (
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-400 whitespace-pre-line">
+              {plan.description}
+            </p>
+          )}
 
         {/* Tabular Price in Selected Currency (with Conditional Strikethrough Cut Price when Discount Offer is active) */}
         <div className="mt-5 flex items-end justify-between border-b border-white/10 pb-5 font-mono">
@@ -168,14 +179,16 @@ export const InteractivePlanCard: React.FC<InteractivePlanCardProps> = ({
         </div>
 
         {/* Features Checklist */}
-        <ul className="mt-5 space-y-2.5 border-t border-white/10 pt-5 text-xs text-slate-300">
-          {plan.features.map((feat, idx) => (
-            <li key={idx} className="flex items-center gap-2.5">
-              <Check className="h-3.5 w-3.5 text-red-500 shrink-0" />
-              <span>{feat}</span>
-            </li>
-          ))}
-        </ul>
+        {plan.features && plan.features.length > 0 && (
+          <ul className="mt-5 space-y-2.5 border-t border-white/10 pt-5 text-xs text-slate-300">
+            {plan.features.map((feat, idx) => (
+              <li key={idx} className="flex items-center gap-2.5">
+                <Check className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                <span>{feat}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <button
